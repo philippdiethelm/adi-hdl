@@ -101,9 +101,10 @@ module axi_ad408x #(
   wire  [DELAY_CTRL_DRP_WIDTH*DELAY_CTRL_NUM_LANES-1:0]  up_drdata;
   wire  [DELAY_CTRL_NUM_LANES-1:0]                       up_dld;
 
-  wire    [7:0]    adc_custom_control_s;
-  wire   [ 4:0]    adc_num_lanes;
+  wire   [ 7:0]    adc_custom_control_s;
+  wire   [ 1:0]    adc_device_code;
   wire             bitslip_enable;
+  wire   [ 4:0]    adc_num_lanes;
   wire             filter_enable;
   wire             delay_locked;
   wire             sync_status;
@@ -137,9 +138,9 @@ module axi_ad408x #(
   assign adc_clk = adc_clk_s;
   assign up_clk  = s_axi_aclk;
   assign up_rstn = s_axi_aresetn;
-
-  assign self_sync     = adc_custom_control_s[1];
-  assign filter_enable = adc_custom_control_s[0];
+  assign adc_device_code = adc_custom_control_s[3:2];
+  assign self_sync       = adc_custom_control_s[1];
+  assign filter_enable   = adc_custom_control_s[0];
 
   always @(*) begin
     up_rdata_r = 'h00;
@@ -281,6 +282,7 @@ module axi_ad408x #(
     .cnv_in_p(cnv_in_p),
     .cnv_in_n(cnv_in_n),
     .num_lanes(adc_num_lanes),
+    .device_code(adc_device_code),
     .self_sync(self_sync),
     .up_clk(up_clk),
     .up_adc_dld(up_dld),

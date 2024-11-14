@@ -54,6 +54,7 @@ module ad408x_phy #(
 
   input                             sync_n,
   input        [4:0]                num_lanes,
+  input        [1:0]                device_code,
   input                             self_sync,
   input                             bitslip_enable,
   input                             filter_enable,
@@ -128,12 +129,22 @@ module ad408x_phy #(
   wire [ 4:0]          shift_cnt_value;
   wire                 shift_cnt_en_s;
   wire [15:0]          serdes_data_16;
+  wire                 pack16_20_valid;
+  wire                 pack16_16_valid;
+  wire                 pack16_14_valid;
+  wire                 pack8_20_valid;
+  wire                 pack8_16_valid;
+  wire                 pack8_14_valid;
   wire [ 7:0]          serdes_data_0;
   wire [ 7:0]          serdes_data_1;
   wire [ 7:0]          serdes_data_8;
   wire [19:0]          pattern_value;
   wire [19:0]          packed_16_20;
+  wire [19:0]          packed_16_16;
+  wire [19:0]          packed_16_14;
   wire [19:0]          packed_8_20;
+  wire [19:0]          packed_8_16;
+  wire [19:0]          packed_8_14;
   wire                 adc_clk_div;
   wire [NUM_LANES-1:0] serdes_in_p;
   wire [NUM_LANES-1:0] serdes_in_n;
@@ -146,6 +157,8 @@ module ad408x_phy #(
   wire [NUM_LANES-1:0] data_s5;
   wire [NUM_LANES-1:0] data_s6;
   wire [NUM_LANES-1:0] data_s7;
+
+
 
   reg  [5:0]  serdes_reset = 6'b000110;
   reg         sync_status_int = 1'b0;
@@ -165,7 +178,9 @@ module ad408x_phy #(
   assign sync_status       = sync_status_int;
   assign single_lane       = num_lanes[0];
   assign adc_clk           = adc_clk_div;
-  assign pattern_value     = 20'hac5d6;
+  assign pattern_value     = device_code == 2'h0 ? 20'hac5d6:
+                             device_code == 2'h1 ? 16'hc5d6:
+                                                   14'h05d6;
   assign shift_cnt_value   = 'd19;
 
   IBUFGDS i_clk_in_ibuf(
@@ -303,43 +318,132 @@ module ad408x_phy #(
                            serdes_data_0[0],
                            serdes_data_1[0]};
 
+
+// ad_pack for: AD4080 AD4081 AD4082 - 20 bits resolution
+
   ad_pack #(
     .I_W(8),
     .O_W(20),
     .UNIT_W(1),
     .ALIGN_TO_MSB(1)
-  ) i_ad_pack_8 (
+  ) i_ad_pack_8_20 (
     .clk(adc_clk_div),
     .reset(~serdes_valid[0]),
     .idata(serdes_data_8),
     .ivalid(serdes_valid[1]),
     .odata(packed_8_20),
-    .ovalid(pack8_valid));
+    .ovalid(pack8_20_valid));
 
   ad_pack #(
     .I_W(16),
     .O_W(20),
     .UNIT_W(1),
     .ALIGN_TO_MSB(1)
-  ) i_ad_pack_16 (
+  ) i_ad_pack_16_20 (
     .clk(adc_clk_div),
     .reset(~serdes_valid[0]),
     .idata(serdes_data_16),
     .ivalid(serdes_valid[1]),
     .odata(packed_16_20),
-    .ovalid(pack16_valid));
+    .ovalid(pack16_20_valid));
+
+
+// ad_pack for: AD4083 AD4084 AD4085 -16bits resolution
+
+  ad_pack #(
+    .I_W(8),
+    .O_W(16),
+    .UNIT_W(1),
+    .ALIGN_TO_MSB(1)
+  ) i_ad_pack_8_16 (
+    .clk(adc_clk_div),
+    .reset(~serdes_valid[0]),
+    .idata(serdes_data_8),
+    .ivalid(serdes_valid[1]),
+    .odata(packed_8_16),
+    .ovalid(pack8_16_valid));
+
+  ad_pack #(
+    .I_W(16),
+    .O_W(16),
+    .UNIT_W(1),
+    .ALIGN_TO_MSB(1)
+  ) i_ad_pack_16_16 (
+    .clk(adc_clk_div),
+    .reset(~serdes_valid[0]),
+    .idata(serdes_data_16),
+    .ivalid(serdes_valid[1]),
+    .odata(packed_16_16),
+    .ovalid(pack16_16_valid));
+
+
+// ad_pack for: AD4086 AD4087 AD4088 -14bits resolution
+
+  ad_pack #(
+    .I_W(8),
+    .O_W(14),
+    .UNIT_W(1),
+    .ALIGN_TO_MSB(1)
+  ) i_ad_pack_8_14 (
+    .clk(adc_clk_div),
+    .reset(~serdes_valid[0]),
+    .idata(serdes_data_8),
+    .ivalid(serdes_valid[1]),
+    .odata(packed_8_14),
+    .ovalid(pack8_14_valid));
+
+  ad_pack #(
+    .I_W(16),
+    .O_W(14),
+    .UNIT_W(1),
+    .ALIGN_TO_MSB(1)
+  ) i_ad_pack_16_14 (
+    .clk(adc_clk_div),
+    .reset(~serdes_valid[0]),
+    .idata(serdes_data_16),
+    .ivalid(serdes_valid[1]),
+    .odata(packed_16_14),
+    .ovalid(pack16_14_valid));
 
   always @(*) begin
-    case(single_lane)
-      1'b0 : packed_data = packed_16_20;
-      1'b1 : packed_data = packed_8_20;
+    case(device_code,single_lane)
+
+      //20bits resolution Dual_lane/Single_lane
+
+      3'h0 : packed_data = packed_16_20;
+      3'h1 : packed_data = packed_8_20;
+
+      //16bits resolution Dual_lane/Single_lane
+
+      3'h2 : packed_data = packed_16_16;
+      3'h3 : packed_data = packed_8_16;
+
+      //14bits resolution Dual_lane/Single_lane
+
+      3'h4 : packed_data = packed_16_14;
+      3'h5 : packed_data = packed_8_14;
+
     endcase
   end
 
   always @(*) begin
-    case(single_lane)
-      1'b0 : packed_data_valid = pack16_valid;
-      1'b1 : packed_data_valid = pack8_valid;
+    case(device_code,single_lane)
+
+      //20bits resolution Dual_lane/Single_lane
+
+      3'h0 : packed_data_valid = pack16_20_valid;
+      3'h1 : packed_data_valid = pack8_20_valid;
+
+      //16bits resolution Dual_lane/Single_lane
+
+      3'h2 : packed_data_valid = pack16_16_valid;
+      3'h3 : packed_data_valid = pack8_16_valid;
+
+      //14bits resolution Dual_lane/Single_lane
+
+      3'h4  : packed_data_valid = pack16_14_valid;
+      3'h5  : packed_data_valid = pack8_14_valid;
+
     endcase
   end
 
@@ -385,7 +489,10 @@ module ad408x_phy #(
 
   // Sign extend to 32 bits
 
-  assign adc_data  = {{12{adc_data_shifted[19]}},adc_data_shifted};
+  assign adc_data  = device_code == 2'h0 ? {{12{adc_data_shifted[19]}},adc_data_shifted}:
+                     device_code == 2'h1 ? {{16{adc_data_shifted[15]}},adc_data_shifted}:
+                                           {{18{adc_data_shifted[13]}},adc_data_shifted};
+
   assign adc_valid = filter_enable ?  (packed_data_valid_d & fall_filter_ready) : packed_data_valid_d;
 
 endmodule
