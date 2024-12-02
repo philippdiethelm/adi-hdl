@@ -7,6 +7,28 @@ source ../../../scripts/adi_env.tcl
 source $ad_hdl_dir/projects/scripts/adi_project_xilinx.tcl
 source $ad_hdl_dir/projects/scripts/adi_board.tcl
 
+# Parameter description:
+# To correctly specify the project for which you want to run `make`, follow the format: project_name/carrier_folder.
+# LANE_RATE: Value of lane rate [gbps]
+# REF_CLK: Value of the reference clock [MHz] (usually LANE_RATE/20 or LANE_RATE/40)
+# PLL_TYPE: The PLL used for driving the link [CPLL/QPLL0/QPLL1]
+#
+#   e.g. call for make with parameters
+#     adi_project_make xcvr_wizard/zc706 [list \
+#       LANE_RATE=10 \
+#       REFCLK=500   \
+#       PLL_TYPE=QPLL\
+#     ]
+#   
+#   e.g call for make without parameters
+#     adi_project_make xcvr_wizard/zc706 {}
+
+adi_project_make xcvr_wizard/zc706 [list \
+  LANE_RATE=10 \
+]
+
+
+
 # get_env_param retrieves parameter value from the environment if exists,
 # other case use the default value
 #
