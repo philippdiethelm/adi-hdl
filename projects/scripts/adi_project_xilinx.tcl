@@ -340,6 +340,33 @@ proc adi_project_files {project_name project_files} {
   set_property top system_top [current_fileset]
 }
 
+
+#Function to execute a `make` command for a project within another project.
+#
+# \param[project_name] - project name for which you want to run make
+# \param[parameters_for_make] - parameters for the make command
+
+proc adi_project_make {project_name parameters_for_make} {
+  global ad_hdl_dir
+  set current_dir [pwd]
+  set adi_project_dir_path [file join $ad_hdl_dir/projects $project_name]
+  puts " path-ul proj pt make: $adi_project_dir_path" 
+
+  cd $adi_project_dir_path
+
+  set make_command "make"
+  if {[llength $parameters_for_make] > 0} {
+    append make_command " " [join $parameters_for_make " "]
+  }
+
+  puts "comanda: $make_command"
+
+  eval exec $make_command
+
+  cd $current_dir
+}
+
+
 ## Run an existing project (generate bit stream).
 #
 # \param[project_name] - name of the project
