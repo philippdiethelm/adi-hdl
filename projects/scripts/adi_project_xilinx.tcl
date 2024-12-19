@@ -345,9 +345,10 @@ proc adi_project_files {project_name project_files} {
 #
 # \param[project_name] - project name for which you want to run make
 # \param[parameters_for_make] - parameters for the make command
+array set ad_project_make_params {}
 
 proc adi_project_make {project_name parameters_for_make} {
-  global ad_hdl_dir
+  global ad_hdl_dir ad_project_make_params
   set current_dir [pwd]
   set adi_project_dir_path [file join $ad_hdl_dir/projects $project_name]
   puts " path-ul proj pt make: $adi_project_dir_path" 
@@ -356,7 +357,14 @@ proc adi_project_make {project_name parameters_for_make} {
 
   set make_command "make"
   if {[llength $parameters_for_make] > 0} {
-    append make_command " " [join $parameters_for_make " "]
+    set formatted_params {}
+        foreach {key value} $parameters_for_make {
+            lappend formatted_params "$key=$value"
+            set ad_project_make_params($key) $value
+            puts "adi proj make params  $key : $ad_project_make_params($key)"
+        }
+        append make_command " " [join $formatted_params " "]
+    # append make_command " " [join $parameters_for_make " "]
   }
 
   puts "comanda: $make_command"
