@@ -16,18 +16,27 @@ source $ad_hdl_dir/projects/scripts/adi_board.tcl
 #   e.g. call for make with parameters
 #     adi_project_make xcvr_wizard/zc706 [list \
 #       LANE_RATE=10 \
-#       REFCLK=500   \
+#       REF_CLK=500   \
 #       PLL_TYPE=QPLL\
 #     ]
 #   
 #   e.g call for make without parameters
 #     adi_project_make xcvr_wizard/zc706 {}
 
+#adi_project_make xcvr_wizard/zc706 {}
+
+# adi_project_make xcvr_wizard/zc706 [list \
+#   LANE_RATE=10 \
+#   REF_CLK=500   \
+#   PLL_TYPE=QPLL\
+# ]
+
+
 adi_project_make xcvr_wizard/zc706 [list \
-  LANE_RATE=10 \
+  LANE_RATE [get_env_param LANE_RATE  10] \
+  REF_CLK   [get_env_param REF_CLK    500]   \
+  PLL_TYPE  [get_env_param PLL_TYPE  QPLL]\
 ]
-
-
 
 # get_env_param retrieves parameter value from the environment if exists,
 # other case use the default value
@@ -59,7 +68,7 @@ adi_project_files daq2_zc706 [list \
   "$ad_hdl_dir/projects/common/zc706/zc706_plddr3_constr.xdc" \
   "$ad_hdl_dir/projects/common/zc706/zc706_system_constr.xdc" ]
 
-adi_project_run daq2_zc706
+# adi_project_run daq2_zc706
 
 ## To improve timing in the axi_ad9680_offload component
 set_property strategy Performance_Retiming [get_runs impl_1]

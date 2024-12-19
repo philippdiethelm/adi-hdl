@@ -12,6 +12,7 @@
 
 source $ad_hdl_dir/library/jesd204/scripts/jesd204.tcl
 source $ad_hdl_dir/projects/common/xilinx/data_offload_bd.tcl
+source $ad_hdl_dir/library/xilinx/scripts/xcvr_automatization.tcl
 
 # JESD204B interface configurations
 
@@ -34,6 +35,13 @@ set adc_data_width [expr $RX_SAMPLE_WIDTH * $RX_NUM_OF_CONVERTERS * $RX_SAMPLES_
 set MAX_TX_NUM_OF_LANES 4
 set MAX_RX_NUM_OF_LANES 4
 
+global ad_project_make_params
+
+set RATE $ad_project_make_params(LANE_RATE);
+set REFCLK $ad_project_make_params(REF_CLK);
+set PLLTYPE $ad_project_make_params(PLL_TYPE);
+
+puts "parametrii xcvr: $RATE $REFCLK $PLLTYPE"
 # dac peripherals
 
 ad_ip_instance axi_adxcvr axi_ad9144_xcvr [list \
@@ -128,6 +136,13 @@ ad_data_offload_create axi_ad9680_offload \
 # synchronization interface
 ad_connect axi_ad9680_offload/init_req axi_ad9680_dma/s_axis_xfer_req
 ad_connect axi_ad9680_offload/sync_ext GND
+
+set xcvr_configs_path [adi_xcvr_generate_path "../../" xcvr_wizard zc706 GTXE2 [list RATE $RATE REFCLK $REFCLK PLLTYPE $PLLTYPE]]
+puts "path cfng: $xcvr_configs_path"
+
+#adi_xcvr_parameters "../../xcvr_wizard/zc706/RATE10_REFCLK500_PLLTYPEQPLL/xcvr_wizard_zc706.gen/sources_1/ip/GTXE2_cfng.txt"
+adi_xcvr_parameters $xcvr_configs_path
+puts "Current directory in da2_bd: [pwd]"
 
 # shared transceiver core
 
