@@ -35,13 +35,16 @@ set adc_data_width [expr $RX_SAMPLE_WIDTH * $RX_NUM_OF_CONVERTERS * $RX_SAMPLES_
 set MAX_TX_NUM_OF_LANES 4
 set MAX_RX_NUM_OF_LANES 4
 
-global ad_project_make_params
+# global ad_project_make_params
 
-set RATE $ad_project_make_params(LANE_RATE);
-set REFCLK $ad_project_make_params(REF_CLK);
-set PLLTYPE $ad_project_make_params(PLL_TYPE);
+#set RATE $ad_project_params(LANE_RATE);
+#set REFCLK $ad_project_params(REF_CLK);
+#set PLLTYPE $ad_project_params(PLL_TYPE);
 
-puts "parametrii xcvr: $RATE $REFCLK $PLLTYPE"
+# puts "parametrii xcvr: $RATE $REFCLK $PLLTYPE"
+#global XCVR_CONFIG_PATH
+global FILE_PATHS
+
 # dac peripherals
 
 ad_ip_instance axi_adxcvr axi_ad9144_xcvr [list \
@@ -137,27 +140,41 @@ ad_data_offload_create axi_ad9680_offload \
 ad_connect axi_ad9680_offload/init_req axi_ad9680_dma/s_axis_xfer_req
 ad_connect axi_ad9680_offload/sync_ext GND
 
-set xcvr_configs_path [adi_xcvr_generate_path "../../" xcvr_wizard zc706 GTXE2 [list RATE $RATE REFCLK $REFCLK PLLTYPE $PLLTYPE]]
-puts "path cfng: $xcvr_configs_path"
+# set xcvr_configs_path [adi_xcvr_generate_path "../../" xcvr_wizard zc706 GTXE2 [list RATE $RATE REFCLK $REFCLK PLLTYPE $PLLTYPE]]
+# puts "path cfng: $xcvr_configs_path"
 
 #adi_xcvr_parameters "../../xcvr_wizard/zc706/RATE10_REFCLK500_PLLTYPEQPLL/xcvr_wizard_zc706.gen/sources_1/ip/GTXE2_cfng.txt"
-adi_xcvr_parameters $xcvr_configs_path
-puts "Current directory in da2_bd: [pwd]"
+set util_adxcvr_parameters [adi_xcvr_parameters $FILE_PATHS [list \
+  RX_NUM_OF_LANES $MAX_RX_NUM_OF_LANES \
+  TX_NUM_OF_LANES $MAX_TX_NUM_OF_LANES\
+]]
+puts "upd params for xcvr: $util_adxcvr_parameters"
+# puts "Current directory in da2_bd: [pwd]"
 
 # shared transceiver core
 
-ad_ip_instance util_adxcvr util_daq2_xcvr [list \
-  RX_NUM_OF_LANES $MAX_RX_NUM_OF_LANES \
-  TX_NUM_OF_LANES $MAX_TX_NUM_OF_LANES \
-  QPLL_REFCLK_DIV 1 \
-  QPLL_FBDIV_RATIO 1 \
-  QPLL_FBDIV 0x30 \
-  RX_OUT_DIV 1 \
-  TX_OUT_DIV 1 \
-  RX_DFE_LPM_CFG 0x0104 \
-  RX_CDR_CFG 0x0B000023FF10400020 \
-]
+ad_ip_instance util_adxcvr util_daq2_xcvr $util_adxcvr_parameters
 
+# ad_ip_instance util_adxcvr util_daq2_xcvr [list \
+#   RX_NUM_OF_LANES $MAX_RX_NUM_OF_LANES \
+#   TX_NUM_OF_LANES $MAX_TX_NUM_OF_LANES \
+#   QPLL_REFCLK_DIV 1 \
+#   QPLL_FBDIV_RATIO 1 \
+#   QPLL_FBDIV 0x30 \
+#   RX_OUT_DIV 1 \
+#   TX_OUT_DIV 1 \
+#   RX_DFE_LPM_CFG 0x0104 \
+#   RX_CDR_CFG 0x0B000023FF10400020 \
+# ]
+
+# ad_ip_instance util_adxcvr util_daq2_xcvr [list \
+#   RX_NUM_OF_LANES $MAX_RX_NUM_OF_LANES \
+#   TX_NUM_OF_LANES $MAX_TX_NUM_OF_LANES \
+#   CPLL_FBDIV 4 \
+#   QPLL_FBDIV QPLL_FBDIV_IN
+# ]
+# sa muti parametrii la metoda ta, sa rezolvi aia cu if si apoi sa apelezi asta cu o singura lista
+# $util_adxcvr_parameters
 ad_connect  $sys_cpu_resetn util_daq2_xcvr/up_rstn
 ad_connect  $sys_cpu_clk util_daq2_xcvr/up_clk
 

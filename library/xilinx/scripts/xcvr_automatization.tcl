@@ -4,34 +4,26 @@
 ###############################################################################
 proc adi_xcvr_generate_path {base_path projname carriername xcvrtype parameters} {
 
-     # Construiește path-ul pornind de la base_path
     set path $base_path
-
     append path "$projname/$carriername/"
 
-    # Iterează prin lista de parametri și valori
     foreach {key value} $parameters {
-        # Adaugă denumirea parametrului și valoarea la path
         append path "${key}${value}_"
     }
 
-    # Elimină underscore-ul final
     set path [string trimright $path "_"]
-
     append path "/${projname}_${carriername}.gen/sources_1/ip/${xcvrtype}_cfng.txt"
-
-    # Returnează path-ul construit
+    
     return $path
-
 }
 
-proc adi_xcvr_parameters {file_path} {
+proc adi_xcvr_parameters {file_paths parameters} {
     # 1. Definirea parametrilor și valorilor implicite
-    set default_parameters {
-        # "TX_NUM_OF_LANES" "8"
-        # "TX_LANE_INVERT" "0"
-        # "RX_NUM_OF_LANES" "8"
         # "RX_LANE_INVERT" "0"
+        # "TX_LANE_INVERT" "0"
+    set default_parameters {
+        "RX_NUM_OF_LANES" "8"
+        "TX_NUM_OF_LANES" "8"
         "QPLL_REFCLK_DIV" "1"
         "QPLL_FBDIV_RATIO" "1"
         "POR_CFG" "16'b0000000000000110"
@@ -80,18 +72,69 @@ proc adi_xcvr_parameters {file_path} {
         "TXOUT_DIV" "TX_OUT_DIV"
         "RXOUT_DIV" "RX_OUT_DIV"
         "CPLL_FBDIV_45" "CPLL_FBDIV_4_5"
+        "RXCDR_CFG" "RX_CDR_CFG"
     }
 
-    # 2. Extrage parametrii și valorile lor din fișierul dat
     set updated_params {}
-    set file_content [read [open $file_path r]]
+
+    if {[llength $parameters] > 0} {
+        foreach {key value} $parameters {
+            puts "key: $key v: $value "
+            if {[dict exists $default_parameters $key]} {
+                set default_value [dict get $default_parameters $key]
+                puts "existaaa def val: $default_value \n"
+                
+                if {$value != $default_value} {
+                    puts "diferaaa, se insereaza in dict: param: $key cu val: $value \n"
+                    dict set updated_params $key $value
+                }
+            }   
+        }
+    }
+
+    #set config_dir_name [file dirname $file_path]
+    #puts "$config_dir_name"
+
+    set param_file_path [dict get $file_paths param_file_path]
+    set cfng_file_path [dict get $file_paths cfng_file_path]
+
+    set param_file_content [read [open $param_file_path r]]
+    #puts "Continutul fișierului common.v este:"
+    #puts $param_file_content
+
+    # Definirea pattern-ului regex pentru a extrage parametrii și valorile lor
+    set param_pattern {QPLL_FBDIV_TOP =  ([0-9]+);}
+    set match [regexp -inline $param_pattern $param_file_content]
+    #puts "matchh: [lindex $match 0]"
+    set QPLL_FBDIV_TOP [lindex $match 1]
+    #puts "QPLL FBDIV TOP: $QPLL_FBDIV_TOP"
+
+    switch $QPLL_FBDIV_TOP {
+	   16 {set QPLL_FBDIV_IN "10'b0000100000"}
+	   20 {set QPLL_FBDIV_IN "10'b0000110000"}
+	   32 {set QPLL_FBDIV_IN "10'b0001100000"}
+	   40 {set QPLL_FBDIV_IN "10'b0010000000"}
+	   64 {set QPLL_FBDIV_IN "10'b0011100000"}
+	   66 {set QPLL_FBDIV_IN "10'b0101000000"}
+	   80 {set QPLL_FBDIV_IN "10'b0100100000"}
+	   100 {set QPLL_FBDIV_IN "10'b0101110000"}
+	   default {set QPLL_FBDIV_IN "10'b0000000000"}
+    } 
+    #puts "QPLL FBDIV IN: $QPLL_FBDIV_IN"
+
+    switch $QPLL_FBDIV_TOP {
+           66 {set QPLL_FBDIV_RATIO "1'b0"}
+           default {set QPLL_FBDIV_RATIO "1'b1"}
+    }
+    #puts "QPLL FBDIV RATIO: $QPLL_FBDIV_RATIO"	
+
+    set file_content [read [open $cfng_file_path r]]
     puts "Continutul fișierului este:"
-    puts $file_content
+    #puts $file_content
     
     # Definirea pattern-ului regex pentru a extrage parametrii și valorile lor
     set pattern {'([^']+)' => '([^']+\\?'?[0-9a-h]*)'}
     set results {}
-    # 3. Iterăm prin parametrii din fișier și comparăm cu valorile implicite
     set matches [regexp -all -inline $pattern $file_content]
 
     for {set i 0} {$i < [llength $matches]} {incr i 3} {
@@ -107,30 +150,26 @@ proc adi_xcvr_parameters {file_path} {
         if {[dict exists $correction_map $param]} {
             set corr_param [dict get $correction_map $param]
         }
-   
         # puts "cor param: $corr_param"
-
         if {[dict exists $default_parameters $corr_param]} {
             set default_value [dict get $default_parameters $corr_param]
             puts "existaaa def val: $default_value \n"
-            # Dacă valoarea din fișier diferă de valoarea implicită, adăugăm în dicționar
+
             if {$cleaned_value != $default_value} {
-                puts "diferaaa, se insereaza in dict: param: $corr_param cu val: $cleaned_value \n"
+		if {[string equal $cleaned_value "QPLL_FBDIV_IN"]} {
+		    set cleaned_value $QPLL_FBDIV_IN
+		}
+	        puts "diferaaa, se insereaza in dict: param: $corr_param cu val: $cleaned_value \n"
                 dict set updated_params $corr_param $cleaned_value
             }
         }
-
-
         lappend results [list $corr_param $cleaned_value]
     }
 
-
-    # 4. Afișăm și returnăm dicționarul cu parametrii actualizați
     puts "Updated Parameters:"
     dict for {key value} $updated_params {
         puts "$key: $value"
     }
 
-    # return $updated_params
-    return $results
+    return $updated_params
 }
