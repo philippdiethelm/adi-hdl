@@ -30,13 +30,22 @@ source $ad_hdl_dir/projects/scripts/adi_board.tcl
 #   REF_CLK=500   \
 #   PLL_TYPE=QPLL\
 # ]
+#global XCVR_CONFIG_PATH
+global FILE_PATHS
 
-
-adi_project_make xcvr_wizard/zc706 [list \
+set FILE_PATHS [adi_project_make xcvr_wizard zc706 GTXE2 [list \
   LANE_RATE [get_env_param LANE_RATE  10] \
   REF_CLK   [get_env_param REF_CLK    500]   \
   PLL_TYPE  [get_env_param PLL_TYPE  QPLL]\
-]
+]]
+puts "xcvr config path in sys proj: [dict get $FILE_PATHS cfng_file_path]"
+puts "local param file path: [dict get $FILE_PATHS param_file_path]"
+
+# adi_project_make xcvr_wizard zc706 [list \
+#   LANE_RATE [get_env_param LANE_RATE  10] \
+#   REF_CLK   [get_env_param REF_CLK    500]   \
+#   PLL_TYPE  [get_env_param PLL_TYPE  QPLL]\
+# ]
 
 # get_env_param retrieves parameter value from the environment if exists,
 # other case use the default value
