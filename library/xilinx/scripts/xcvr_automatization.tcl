@@ -2,28 +2,29 @@
 ## Copyright (C) 2016-2023 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
-proc adi_xcvr_generate_path {base_path projname carriername xcvrtype parameters} {
 
-    set path $base_path
-    append path "$projname/$carriername/"
+# proc adi_xcvr_generate_path {base_path projname carriername xcvrtype parameters} {
 
-    foreach {key value} $parameters {
-        append path "${key}${value}_"
-    }
+#     set path $base_path
+#     append path "$projname/$carriername/"
 
-    set path [string trimright $path "_"]
-    append path "/${projname}_${carriername}.gen/sources_1/ip/${xcvrtype}_cfng.txt"
+#     foreach {key value} $parameters {
+#         append path "${key}${value}_"
+#     }
+
+#     set path [string trimright $path "_"]
+#     append path "/${projname}_${carriername}.gen/sources_1/ip/${xcvrtype}_cfng.txt"
     
-    return $path
-}
+#     return $path
+# }
 
 proc adi_xcvr_parameters {file_paths parameters} {
     # 1. Definirea parametrilor și valorilor implicite
-        # "RX_LANE_INVERT" "0"
-        # "TX_LANE_INVERT" "0"
     set default_parameters {
         "RX_NUM_OF_LANES" "8"
         "TX_NUM_OF_LANES" "8"
+        "RX_LANE_INVERT" "0"
+        "TX_LANE_INVERT" "0"
         "QPLL_REFCLK_DIV" "1"
         "QPLL_FBDIV_RATIO" "1"
         "POR_CFG" "16'b0000000000000110"
@@ -133,7 +134,7 @@ proc adi_xcvr_parameters {file_paths parameters} {
     #puts $file_content
     
     # Definirea pattern-ului regex pentru a extrage parametrii și valorile lor
-    set pattern {'([^']+)' => '([^']+\\?'?[0-9a-h]*)'}
+    set pattern {'([^']+)' => '([^']+\\?'?[0-9a-hA-H]*)'}
     set results {}
     set matches [regexp -all -inline $pattern $file_content]
 
@@ -158,6 +159,9 @@ proc adi_xcvr_parameters {file_paths parameters} {
             if {$cleaned_value != $default_value} {
 		if {[string equal $cleaned_value "QPLL_FBDIV_IN"]} {
 		    set cleaned_value $QPLL_FBDIV_IN
+		}
+        if {[string equal $cleaned_value "QPLL_FBDIV_RATIO"]} {
+		    set cleaned_value $QPLL_FBDIV_RATIO
 		}
 	        puts "diferaaa, se insereaza in dict: param: $corr_param cu val: $cleaned_value \n"
                 dict set updated_params $corr_param $cleaned_value
