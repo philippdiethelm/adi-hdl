@@ -347,11 +347,52 @@ proc adi_project_files {project_name project_files} {
 # \param[parameters_for_make] - parameters for the make command
 #array set ad_project_make_params {}
 
-proc adi_project_make {project_name carrier_name xcvr_type parameters_for_make} {
+proc adi_project_make {project_name parameters_for_make} {
   global ad_hdl_dir 
   #ad_project_make_params
 
   set current_dir [pwd]
+
+  set carrier_name [file tail $current_dir]
+  puts "carrier name in make: $carrier_name"
+
+  switch $carrier_name {
+    "zc706" {
+      set xcvr_type GTXE2
+    }
+    "kc705" {
+      set xcvr_type GTXE2
+    }
+    "zed" {
+      set xcvr_type GTXE2
+    }
+    "vc707" {
+      set xcvr_type GTXE2
+    }
+    "kcu105" {
+      set xcvr_type GTHE3
+    }
+    "zcu102" {
+      set xcvr_type GTHE4
+    }
+    "vcu118" {
+      set xcvr_type GTYE4
+    }
+    "vcu128" {
+      set xcvr_type GTYE4
+    }
+    default {
+      puts "ERROR adi_project_make: Unsupported carrier (device)."
+      return 1
+    }
+  }
+
+      # "xcvu095" {
+    #   set xcvr_type GTYE3
+    # } #nu am gasit nicio corespondenta cu vreun carrier
+
+  puts "xcvr type in make: $xcvr_type"
+
   set adi_project_dir_path [file join $ad_hdl_dir/projects $project_name $carrier_name] 
   set parameters_dir_name {}
   set make_command "make"
@@ -365,17 +406,21 @@ proc adi_project_make {project_name carrier_name xcvr_type parameters_for_make} 
     set formatted_params {}
     foreach {key value} $parameters_for_make {
         lappend formatted_params "$key=$value"
-        set ad_project_make_params($key) $value
         #set ad_project_make_params($key) $value
         #puts "adi proj make params  $key : $ad_project_make_params($key)"
 
         set key_parsed [string map {"LANE_" "" "_" ""} $key]
-        lappend parameters_dir_name "${key_parsed}${value}"
+        puts "value : $value"
+        set value_parrsed [string map {. _} $value]
+        puts " value parsed: $value_parrsed"
+        set ad_project_make_params($key) $value_parrsed
+        lappend parameters_dir_name "${key_parsed}${value_parrsed}"
 
     }
     append make_command " " [join $formatted_params " "]
     set parameters_dir_name [join  $parameters_dir_name "_"]
     # append make_command " " [join $parameters_for_make " 
+
     set config_parser_dir_name "${xcvr_type}_${ad_project_make_params(PLL_TYPE)}_${ad_project_make_params(LANE_RATE)}_${ad_project_make_params(REF_CLK)}"
     set file_local_param [string tolower $config_parser_dir_name]
     append file_local_param "_common.v"
