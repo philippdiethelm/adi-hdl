@@ -25,8 +25,19 @@ source $ad_hdl_dir/projects/scripts/adi_board.tcl
 
 set CMOS_LVDS_N [get_env_param CMOS_LVDS_N 1]
 
+# 0 = Tx1 SSI reference clock
+# 1 = Rx1 clocks
+# 2 = Rx2 clocks
+set USE_RX_CLK_FOR_TX1 [get_env_param USE_RX_CLK_FOR_TX1 0]
+# 0 = Tx2 SSI reference clock
+# 1 = Rx1 clocks
+# 2 = Rx2 clocks
+set USE_RX_CLK_FOR_TX2 [get_env_param USE_RX_CLK_FOR_TX2 0]
+
 adi_project adrv9001_zcu102 0 [list \
   CMOS_LVDS_N $CMOS_LVDS_N \
+  USE_RX_CLK_FOR_TX1 $USE_RX_CLK_FOR_TX1 \
+  USE_RX_CLK_FOR_TX2 $USE_RX_CLK_FOR_TX2 \
 ]
 
 adi_project_files {} [list \
