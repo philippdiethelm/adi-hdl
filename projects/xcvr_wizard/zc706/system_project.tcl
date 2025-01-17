@@ -15,5 +15,5 @@ source $ad_hdl_dir/projects/scripts/adi_board.tcl
 adi_project xcvr_wizard_zc706 0 [list \
   LANE_RATE   [get_env_param LANE_RATE        10 ] \
   REF_CLK     [get_env_param REF_CLK         500 ] \
-  PLL_TYPE    [get_env_param PLL_TYPE      QPLL0 ] \
+  PLL_TYPE    [get_env_param PLL_TYPE       QPLL ] \
 ]   
