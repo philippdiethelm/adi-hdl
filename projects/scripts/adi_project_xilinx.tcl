@@ -433,7 +433,12 @@ proc adi_project_make {project_name parameters_for_make} {
 
   append adi_project_dir_path "/$parameters_dir_name/${project_name}_${carrier_name}.gen/sources_1/ip/${xcvr_type}_cfng.txt"
   set config_dir_path [file dirname $adi_project_dir_path]
-  set file_local_param_path [file join $config_dir_path $config_parser_dir_name $file_local_param]
+  
+  set file_local_param_path ""
+  if {$xcvr_type == "GTXE2"} {
+    set file_local_param_path [file join $config_dir_path $config_parser_dir_name $file_local_param]
+  }
+  
   puts "path local: $file_local_param_path"
   return [dict create "cfng_file_path" $adi_project_dir_path "param_file_path" $file_local_param_path]
   #return $adi_project_dir_path
