@@ -10,9 +10,9 @@ source $ad_hdl_dir/projects/scripts/adi_board.tcl
 global FILE_PATHS
 
 set FILE_PATHS [adi_project_make xcvr_wizard [list \
-  LANE_RATE [get_env_param LANE_RATE  5] \
-  REF_CLK   [get_env_param REF_CLK    125]   \
-  PLL_TYPE  [get_env_param PLL_TYPE  CPLL]\
+  LANE_RATE [get_env_param LANE_RATE  10] \
+  REF_CLK   [get_env_param REF_CLK    500]   \
+  PLL_TYPE  [get_env_param PLL_TYPE  QPLL]\
 ]]
 puts "xcvr config path in sys proj: [dict get $FILE_PATHS cfng_file_path]"
 puts "local param file path: [dict get $FILE_PATHS param_file_path]"
@@ -47,7 +47,7 @@ adi_project_files daq2_kc705 [list \
   "$ad_hdl_dir/library/common/ad_iobuf.v" \
   "$ad_hdl_dir/projects/common/kc705/kc705_system_constr.xdc" ]
 
-adi_project_run daq2_kc705
+#adi_project_run daq2_kc705
 
 ## To improve timing in the axi_ad9680_offload component
 set_property strategy Performance_Retiming [get_runs impl_1]
