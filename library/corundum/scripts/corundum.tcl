@@ -375,6 +375,7 @@ if {$APP_ENABLE == 1} {
   
   ad_connect application_core/input_axis_tvalid input_axis_tvalid
   ad_connect application_core/input_axis_tdata input_axis_tdata
+  ad_connect application_core/input_axis_tready input_axis_tready
 
   ad_connect application_core/input_enable input_enable
 
