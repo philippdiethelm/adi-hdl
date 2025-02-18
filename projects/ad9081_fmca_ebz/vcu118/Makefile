@@ -25,7 +25,7 @@ M_DEPS += ../../../library/corundum/scripts/corundum_vcu118_cfg.tcl
 M_DEPS += ../../../library/corundum/scripts/corundum.tcl
 
 EXTERNAL_DEPS += ../../../../corundum/fpga/common/syn/vivado/rb_drp.tcl
-EXTERNAL_DEPS += ../../../../corundum/fpga/lib/eth/lib/axis/syn/vivado/sync_reset.tcl
+EXTERNAL_DEPS += ../../../library/corundum/scripts/sync_reset.tcl
 EXTERNAL_DEPS += ../../../../corundum/fpga/common/syn/vivado/cmac_gty_wrapper.tcl
 EXTERNAL_DEPS += ../../../../corundum/fpga/common/syn/vivado/cmac_gty_ch_wrapper.tcl
 EXTERNAL_DEPS += ../../../../corundum/fpga/common/syn/vivado/mqnic_rb_clk_info.tcl

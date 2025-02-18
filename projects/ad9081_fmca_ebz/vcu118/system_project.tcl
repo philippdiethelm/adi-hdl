@@ -64,7 +64,7 @@ adi_project_files ad9081_fmca_ebz_vcu118 [list \
   "$ad_hdl_dir/../corundum/fpga/mqnic/VCU118/fpga_100g/boot.xdc" \
   "$ad_hdl_dir/../corundum/fpga/mqnic/VCU118/fpga_100g/rtl/sync_signal.v" \
   "$ad_hdl_dir/../corundum/fpga/common/syn/vivado/rb_drp.tcl" \
-  "$ad_hdl_dir/../corundum/fpga/lib/eth/lib/axis/syn/vivado/sync_reset.tcl" \
+  "$ad_hdl_dir/library/corundum/scripts/sync_reset.tcl" \
   "$ad_hdl_dir/../corundum/fpga/common/syn/vivado/cmac_gty_wrapper.tcl" \
   "$ad_hdl_dir/../corundum/fpga/common/syn/vivado/cmac_gty_ch_wrapper.tcl" \
   "$ad_hdl_dir/../corundum/fpga/common/syn/vivado/mqnic_rb_clk_info.tcl" \
