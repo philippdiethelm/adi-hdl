@@ -53,8 +53,8 @@ module spi_engine_offload #(
   input ctrl_sdo_wr_en,
   input [(DATA_WIDTH-1):0] ctrl_sdo_wr_data,
 
-  input ctrl_enable,
-  output ctrl_enabled,
+  (* MARK_DEBUG = "TRUE" *) input ctrl_enable,
+  (* MARK_DEBUG = "TRUE" *) output ctrl_enabled,
   input ctrl_mem_reset,
 
   output status_sync_valid,
@@ -64,7 +64,7 @@ module spi_engine_offload #(
   input spi_clk,
   input spi_resetn,
 
-  input trigger,
+  (* MARK_DEBUG = "TRUE" *) input trigger,
 
   output cmd_valid,
   input cmd_ready,

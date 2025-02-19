@@ -51,28 +51,28 @@ module spi_engine_execution #(
 
   output reg active,
 
-  output cmd_ready,
-  input cmd_valid,
-  input [15:0] cmd,
+  (* MARK_DEBUG = "TRUE" *) output cmd_ready,
+  (* MARK_DEBUG = "TRUE" *) input cmd_valid,
+  (* MARK_DEBUG = "TRUE" *) input [15:0] cmd,
 
-  input sdo_data_valid,
-  output sdo_data_ready,
-  input [(DATA_WIDTH-1):0] sdo_data,
+  (* MARK_DEBUG = "TRUE" *) input sdo_data_valid,
+  (* MARK_DEBUG = "TRUE" *) output sdo_data_ready,
+  (* MARK_DEBUG = "TRUE" *) input [(DATA_WIDTH-1):0] sdo_data,
 
-  input sdi_data_ready,
-  output sdi_data_valid,
-  output [(NUM_OF_SDI * DATA_WIDTH)-1:0] sdi_data,
+  (* MARK_DEBUG = "TRUE" *) input sdi_data_ready,
+  (* MARK_DEBUG = "TRUE" *) output sdi_data_valid,
+  (* MARK_DEBUG = "TRUE" *) output [(NUM_OF_SDI * DATA_WIDTH)-1:0] sdi_data,
 
   input sync_ready,
   output reg sync_valid,
   output [7:0] sync,
 
   input echo_sclk,
-  output reg sclk,
+  (* MARK_DEBUG = "TRUE" *) output reg sclk,
   output reg sdo,
   output reg sdo_t,
   input [NUM_OF_SDI-1:0] sdi,
-  output reg [NUM_OF_CS-1:0] cs,
+  (* MARK_DEBUG = "TRUE" *) output reg [NUM_OF_CS-1:0] cs,
   output reg three_wire
 );
 
@@ -95,8 +95,8 @@ module spi_engine_execution #(
   localparam BIT_COUNTER_CARRY = 2** (BIT_COUNTER_WIDTH + 1);
   localparam BIT_COUNTER_CLEAR = {{8{1'b1}}, {BIT_COUNTER_WIDTH{1'b0}}, 1'b1};
 
-  reg sclk_int = 1'b0;
-  reg sdo_t_int = 1'b0;
+  (* MARK_DEBUG = "TRUE" *) reg sclk_int = 1'b0;
+  (* MARK_DEBUG = "TRUE" *) reg sdo_t_int = 1'b0;
 
   reg idle;
 
@@ -135,7 +135,7 @@ module spi_engine_execution #(
   wire sdo_enabled_io;
   wire sdi_enabled_io;
 
-  wire sdo_int_s;
+  (* MARK_DEBUG = "TRUE" *) wire sdo_int_s;
 
   wire last_bit;
   wire first_bit;

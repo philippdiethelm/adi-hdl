@@ -93,8 +93,8 @@ module system_top #(
 
   input           ad463x_echo_sclk,
   input           ad463x_ext_clk,
-  output          ad463x_cnv,
-  input           ad463x_busy,
+  (* MARK_DEBUG = "TRUE" *) output          ad463x_cnv,
+  (* MARK_DEBUG = "TRUE" *) input           ad463x_busy,
   inout           ad463x_resetn,
 
   inout   [ 1:0]  adaq42xx_pgia_mux,

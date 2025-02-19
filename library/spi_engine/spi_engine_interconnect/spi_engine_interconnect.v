@@ -92,7 +92,7 @@ module spi_engine_interconnect #(
   output [7:0] s1_sync
 );
 
-  reg s_active = 1'b0;
+  (* MARK_DEBUG = "TRUE" *) reg s_active = 1'b0;
 
   reg idle = 1'b1;
 
