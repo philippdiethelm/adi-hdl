@@ -102,7 +102,7 @@ ad_ip_parameter axi_ad463x_dma CONFIG.DMA_TYPE_DEST 0
 ad_ip_parameter axi_ad463x_dma CONFIG.CYCLIC 0
 ad_ip_parameter axi_ad463x_dma CONFIG.AXI_SLICE_DEST 1
 ad_ip_parameter axi_ad463x_dma CONFIG.AXI_SLICE_SRC 1
-ad_ip_parameter axi_ad463x_dma CONFIG.DMA_DATA_WIDTH_SRC 64
+ad_ip_parameter axi_ad463x_dma CONFIG.DMA_DATA_WIDTH_SRC 32
 ad_ip_parameter axi_ad463x_dma CONFIG.DMA_DATA_WIDTH_DEST 64
 
 # Trigger for SPI offload
@@ -139,7 +139,8 @@ if {$CAPTURE_ZONE == 1} {
   ad_connect busy_sync/out_bits busy_capture/signal_in
   ad_connect $hier_spi_engine/trigger busy_capture/signal_out
   ## SDI is latched by the SPIE execution module
-  ad_connect  $hier_spi_engine/m_axis_sample data_reorder/s_axis
+  #ad_connect  $hier_spi_engine/m_axis_sample data_reorder/s_axis
+  ad_connect $hier_spi_engine/m_axis_sample axi_ad463x_dma/s_axis
 
 } elseif {$CAPTURE_ZONE == 2} {
 
@@ -211,7 +212,7 @@ ad_connect  $hier_spi_engine/${hier_spi_engine}_execution/sclk ad463x_spi_sclk
 ad_connect  $hier_spi_engine/${hier_spi_engine}_execution/sdo ad463x_spi_sdo
 ad_connect  $hier_spi_engine/${hier_spi_engine}_execution/sdi ad463x_spi_sdi
 
-ad_connect  axi_ad463x_dma/s_axis data_reorder/m_axis
+#ad_connect  axi_ad463x_dma/s_axis data_reorder/m_axis
 
 # AXI memory mapped address space
 
