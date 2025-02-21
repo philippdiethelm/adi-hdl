@@ -8,7 +8,6 @@ current_bd_instance /corundum_hierarchy
 
 create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 s_axil_corundum
 create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 s_axil_application
-create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 s_axil_gpio_reset
 
 create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 m_axi
 
@@ -21,17 +20,14 @@ create_bd_pin -dir O -from 0 -to 0 -type rst qsfp_rst
 create_bd_pin -dir O fpga_boot
 create_bd_pin -dir O -type clk qspi_clk
 create_bd_pin -dir I -type rst ptp_rst
-create_bd_pin -dir O -type rst aux_reset_in
 create_bd_pin -dir I -type clk qsfp_mgt_refclk
 create_bd_pin -dir I -type clk qsfp_mgt_refclk_bufg
 
 create_bd_pin -dir I -type clk clk_125mhz
 create_bd_pin -dir I -type clk clk_250mhz
-create_bd_pin -dir I -type clk clk_100mhz
 
 create_bd_pin -dir I -type rst rst_125mhz
 create_bd_pin -dir I -type rst rst_250mhz
-create_bd_pin -dir I -type rst rstn_100mhz
 
 create_bd_pin -dir O -type intr irq
 
@@ -41,17 +37,25 @@ create_bd_pin -dir I -from [expr {$INPUT_WIDTH-1}] -to 0 input_axis_tdata
 
 create_bd_pin -dir I -from [expr {$JESD_M-1}] -to 0 input_enable
 
-ad_ip_instance axi_gpio corundum_gpio_reset [list \
-  C_ALL_OUTPUTS 1 \
-  C_DOUT_DEFAULT 0x00000001 \
-  C_GPIO_WIDTH 1 \
-]
+if {[string equal $CPU MB]} {
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 s_axil_gpio_reset
 
-ad_connect corundum_gpio_reset/gpio_io_o aux_reset_in
-ad_connect corundum_gpio_reset/s_axi_aclk clk_100mhz
-ad_connect corundum_gpio_reset/s_axi_aresetn rstn_100mhz
+  create_bd_pin -dir I -type clk clk_100mhz
+  create_bd_pin -dir I -type rst rstn_100mhz
+  create_bd_pin -dir O -type rst aux_reset_in
 
-ad_connect corundum_gpio_reset/S_AXI s_axil_gpio_reset
+  ad_ip_instance axi_gpio corundum_gpio_reset [list \
+    C_ALL_OUTPUTS 1 \
+    C_DOUT_DEFAULT 0x00000000 \
+    C_GPIO_WIDTH 1 \
+  ]
+
+  ad_connect corundum_gpio_reset/gpio_io_o aux_reset_in
+  ad_connect corundum_gpio_reset/s_axi_aclk clk_100mhz
+  ad_connect corundum_gpio_reset/s_axi_aresetn rstn_100mhz
+
+  ad_connect corundum_gpio_reset/S_AXI s_axil_gpio_reset
+}
 
 ad_ip_instance corundum_core corundum_core [list \
   FPGA_ID $FPGA_ID \

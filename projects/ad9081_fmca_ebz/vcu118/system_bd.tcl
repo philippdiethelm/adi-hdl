@@ -151,6 +151,8 @@ set INPUT_WIDTH 128
 set JESD_M 8
 set JESD_S 1
 
+set CPU MB
+
 source $ad_hdl_dir/library/corundum/scripts/corundum_vcu118_cfg.tcl
 source $ad_hdl_dir/library/corundum/scripts/corundum.tcl
 
@@ -165,6 +167,14 @@ ad_connect clk_wiz_125mhz/reset sys_250m_reset
 ad_ip_instance proc_sys_reset sys_125m_rstgen
 ad_connect sys_125m_rstgen/slowest_sync_clk clk_wiz_125mhz/clk_out1
 ad_connect sys_125m_rstgen/ext_reset_in axi_ddr_cntrl/c0_ddr4_ui_clk_sync_rst
+
+ad_ip_instance proc_sys_reset corundum_250m_rstgen [list \
+  C_EXT_RST_WIDTH 1 \
+  C_AUX_RESET_HIGH.VALUE_SRC USER \
+  C_AUX_RESET_HIGH 1 \
+]
+ad_connect corundum_250m_rstgen/slowest_sync_clk sys_250m_clk
+ad_connect corundum_250m_rstgen/ext_reset_in axi_ddr_cntrl/c0_ddr4_ui_clk_sync_rst
 
 create_bd_intf_port -mode Master -vlnv analog.com:interface:if_qspi_rtl:1.0 qspi0
 create_bd_intf_port -mode Master -vlnv analog.com:interface:if_qspi_rtl:1.0 qspi1
@@ -184,13 +194,14 @@ create_bd_port -dir O -type clk clk_250mhz
 ad_connect clk_wiz_125mhz/clk_out1 clk_125mhz
 ad_connect sys_250m_clk clk_250mhz
 
-ad_connect corundum_hierarchy/aux_reset_in sys_250m_rstgen/aux_reset_in
-
+ad_connect corundum_hierarchy/clk_100mhz sys_cpu_clk
 ad_connect corundum_hierarchy/clk_125mhz clk_wiz_125mhz/clk_out1
 ad_connect corundum_hierarchy/clk_250mhz sys_250m_clk
 
+ad_connect corundum_hierarchy/rstn_100mhz sys_cpu_resetn
 ad_connect corundum_hierarchy/rst_125mhz sys_125m_rstgen/peripheral_reset
-ad_connect corundum_hierarchy/rst_250mhz sys_250m_reset
+ad_connect corundum_hierarchy/rst_250mhz corundum_250m_rstgen/peripheral_reset
+ad_connect corundum_hierarchy/aux_reset_in corundum_250m_rstgen/aux_reset_in
 
 ad_connect corundum_hierarchy/qspi0 qspi0
 ad_connect corundum_hierarchy/qspi1 qspi1
