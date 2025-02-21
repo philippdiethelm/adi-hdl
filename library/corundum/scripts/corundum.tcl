@@ -23,11 +23,11 @@ create_bd_pin -dir I -type rst ptp_rst
 create_bd_pin -dir I -type clk qsfp_mgt_refclk
 create_bd_pin -dir I -type clk qsfp_mgt_refclk_bufg
 
+create_bd_pin -dir I -type clk clk_corundum
 create_bd_pin -dir I -type clk clk_125mhz
-create_bd_pin -dir I -type clk clk_250mhz
 
+create_bd_pin -dir I -type rst rst_corundum
 create_bd_pin -dir I -type rst rst_125mhz
-create_bd_pin -dir I -type rst rst_250mhz
 
 create_bd_pin -dir O -type intr irq
 
@@ -36,26 +36,6 @@ create_bd_pin -dir O input_axis_tready
 create_bd_pin -dir I -from [expr {$INPUT_WIDTH-1}] -to 0 input_axis_tdata
 
 create_bd_pin -dir I -from [expr {$JESD_M-1}] -to 0 input_enable
-
-if {[string equal $CPU MB]} {
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 s_axil_gpio_reset
-
-  create_bd_pin -dir I -type clk clk_100mhz
-  create_bd_pin -dir I -type rst rstn_100mhz
-  create_bd_pin -dir O -type rst aux_reset_in
-
-  ad_ip_instance axi_gpio corundum_gpio_reset [list \
-    C_ALL_OUTPUTS 1 \
-    C_DOUT_DEFAULT 0x00000000 \
-    C_GPIO_WIDTH 1 \
-  ]
-
-  ad_connect corundum_gpio_reset/gpio_io_o aux_reset_in
-  ad_connect corundum_gpio_reset/s_axi_aclk clk_100mhz
-  ad_connect corundum_gpio_reset/s_axi_aresetn rstn_100mhz
-
-  ad_connect corundum_gpio_reset/S_AXI s_axil_gpio_reset
-}
 
 ad_ip_instance corundum_core corundum_core [list \
   FPGA_ID $FPGA_ID \
@@ -263,8 +243,8 @@ ad_connect corundum_core/m_axi m_axi
 
 ad_connect corundum_core/s_axis_stat_tvalid GND
 
-ad_connect corundum_core/clk clk_250mhz
-ad_connect corundum_core/rst rst_250mhz
+ad_connect corundum_core/clk clk_corundum
+ad_connect corundum_core/rst rst_corundum
 ad_connect corundum_core/tx_clk ethernet_core/eth_tx_clk
 ad_connect corundum_core/tx_rst ethernet_core/eth_tx_rst
 ad_connect corundum_core/rx_clk ethernet_core/eth_rx_clk
@@ -275,8 +255,8 @@ ad_connect corundum_core/ptp_sample_clk clk_125mhz
 
 ad_connect corundum_core/irq irq
 
-ad_connect ethernet_core/clk clk_250mhz
-ad_connect ethernet_core/rst rst_250mhz
+ad_connect ethernet_core/clk clk_corundum
+ad_connect ethernet_core/rst rst_corundum
 ad_connect ethernet_core/clk_125mhz clk_125mhz
 ad_connect ethernet_core/rst_125mhz rst_125mhz
 ad_connect ethernet_core/qsfp_drp_clk clk_125mhz
@@ -476,3 +456,21 @@ if {$APP_ENABLE == 1} {
 }
 
 current_bd_instance /
+
+ad_ip_instance proc_sys_reset corundum_rstgen [list \
+  C_EXT_RST_WIDTH 1 \
+  C_AUX_RESET_HIGH.VALUE_SRC USER \
+  C_AUX_RESET_HIGH 1 \
+]
+
+ad_connect corundum_hierarchy/rst_corundum corundum_rstgen/peripheral_reset
+
+if {![string equal $CPU Zynq]} {
+  ad_ip_instance axi_gpio corundum_gpio_reset [list \
+    C_ALL_OUTPUTS 1 \
+    C_DOUT_DEFAULT 0x00000000 \
+    C_GPIO_WIDTH 1 \
+  ]
+
+  ad_connect corundum_gpio_reset/gpio_io_o corundum_rstgen/aux_reset_in
+}
