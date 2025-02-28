@@ -323,7 +323,7 @@ module application_core #
   input  wire [IF_COUNT*PORTS_PER_IF*AXIS_SYNC_DATA_WIDTH-1:0]     s_axis_sync_tx_tdata,
   input  wire [IF_COUNT*PORTS_PER_IF*AXIS_SYNC_KEEP_WIDTH-1:0]     s_axis_sync_tx_tkeep,
   input  wire [IF_COUNT*PORTS_PER_IF-1:0]                          s_axis_sync_tx_tvalid,
-  output reg  [IF_COUNT*PORTS_PER_IF-1:0]                          s_axis_sync_tx_tready,
+  output wire [IF_COUNT*PORTS_PER_IF-1:0]                          s_axis_sync_tx_tready,
   input  wire [IF_COUNT*PORTS_PER_IF-1:0]                          s_axis_sync_tx_tlast,
   input  wire [IF_COUNT*PORTS_PER_IF*AXIS_SYNC_TX_USER_WIDTH-1:0]  s_axis_sync_tx_tuser,
 
@@ -811,6 +811,12 @@ module application_core #
   reg  [AXIS_DATA_WIDTH/8-1:0] packet_axis_tkeep;
   reg                          packet_axis_tlast;
 
+  reg                          packet_buffer_axis_tready;
+  wire                         packet_buffer_axis_tvalid;
+  wire [AXIS_DATA_WIDTH-1:0]   packet_buffer_axis_tdata;
+  wire                         packet_buffer_axis_tlast;
+  wire [AXIS_DATA_WIDTH/8-1:0] packet_buffer_axis_tkeep;
+
   // temporary storage
   always @(posedge clk)
   begin
@@ -961,12 +967,6 @@ module application_core #
   
   ////----------------------------------------Packet Buffer FIFO----------------------//
   //////////////////////////////////////////////////
-  reg                          packet_buffer_axis_tready;
-  wire                         packet_buffer_axis_tvalid;
-  wire [AXIS_DATA_WIDTH-1:0]   packet_buffer_axis_tdata;
-  wire                         packet_buffer_axis_tlast;
-  wire [AXIS_DATA_WIDTH/8-1:0] packet_buffer_axis_tkeep;
-
   wire packet_buffer_almost_full;
   wire packet_buffer_almost_empty;
 
@@ -1009,8 +1009,6 @@ module application_core #
 
   ////----------------------------------------OS Buffer FIFO----------------------//
   //////////////////////////////////////////////////
-  wire                               s_axis_sync_tx_tready_int;
-
   reg                                os_buffer_axis_tready;
   wire                               os_buffer_axis_tvalid;
   wire [AXIS_SYNC_DATA_WIDTH-1:0]    os_buffer_axis_tdata;
@@ -1018,29 +1016,9 @@ module application_core #
   wire [AXIS_SYNC_DATA_WIDTH/8-1:0]  os_buffer_axis_tkeep;
   wire [AXIS_SYNC_TX_USER_WIDTH-1:0] os_buffer_axis_tuser;
 
-  // reg [$clog2(12288/AXIS_SYNC_DATA_WIDTH)*2-1:0] packets_in_buffer;
-
-  // reg input_packet;
-  // reg output_packet;
-
-  // always @(posedge clk)
-  // begin
-  //   if (!rstn) begin
-  //     packets_in_buffer <= 'h0;
-  //   end else begin
-  //     input_packet = s_axis_sync_tx_tready && s_axis_sync_tx_tvalid && s_axis_sync_tx_tlast;
-  //     output_packet = os_buffer_axis_tready && os_buffer_axis_tvalid && os_buffer_axis_tlast;
-  //     case ({output_packet, input_packet})
-  //       2'b01: packets_in_buffer <= packets_in_buffer + 1;
-  //       2'b10: packets_in_buffer <= packets_in_buffer - 1;
-  //       default:;
-  //     endcase
-  //   end
-  // end
-
   util_axis_fifo #(
     .DATA_WIDTH(AXIS_SYNC_DATA_WIDTH),
-    .ADDRESS_WIDTH($clog2(12288/AXIS_SYNC_DATA_WIDTH)*2),
+    .ADDRESS_WIDTH($clog2(12288/AXIS_SYNC_DATA_WIDTH)+1),
     .ASYNC_CLK(0),
     .M_AXIS_REGISTERED(1),
     .ALMOST_EMPTY_THRESHOLD(),
@@ -1062,7 +1040,7 @@ module application_core #
 
     .s_axis_aclk(clk),
     .s_axis_aresetn(rstn),
-    .s_axis_ready(s_axis_sync_tx_tready_int),
+    .s_axis_ready(s_axis_sync_tx_tready),
     .s_axis_valid(s_axis_sync_tx_tvalid),
     .s_axis_data(s_axis_sync_tx_tdata),
     .s_axis_tkeep(s_axis_sync_tx_tkeep),
@@ -1073,7 +1051,7 @@ module application_core #
 
   util_axis_fifo #(
     .DATA_WIDTH(AXIS_SYNC_TX_USER_WIDTH),
-    .ADDRESS_WIDTH($clog2(12288/AXIS_SYNC_DATA_WIDTH)*2),
+    .ADDRESS_WIDTH($clog2(12288/AXIS_SYNC_DATA_WIDTH)+1),
     .ASYNC_CLK(0),
     .M_AXIS_REGISTERED(1),
     .ALMOST_EMPTY_THRESHOLD(),
@@ -1153,8 +1131,6 @@ module application_core #
       ip_fragment_offset <= 13'h0000;
       ip_time_to_live <= 8'h80;
       ip_protocol <= 8'h11;
-      // ip_source_IP_address <= 32'hC0A80045;
-      // ip_destination_IP_address <= 32'hC0A8000A;
       ip_source_IP_address <= {8'd192, 8'd168, 8'd0, 8'd69};
       ip_destination_IP_address <= {8'd192, 8'd168, 8'd0, 8'd10};
       // UDP header
@@ -1413,8 +1389,6 @@ module application_core #
       m_axis_sync_tx_tlast = os_buffer_axis_tlast;
       m_axis_sync_tx_tuser = s_axis_sync_tx_tuser;
 
-      s_axis_sync_tx_tready = s_axis_sync_tx_tready_int;
-
       packet_buffer_axis_tready = 1'b0;
     end else begin
       m_axis_sync_tx_tdata = packet_buffer_axis_tdata;
@@ -1425,8 +1399,6 @@ module application_core #
       m_axis_sync_tx_tuser = 1'b0;
 
       os_buffer_axis_tready = 1'b0;
-
-      s_axis_sync_tx_tready = 1'b0;
     end
   end
   
