@@ -530,21 +530,6 @@ module application_core #
   input  wire [JESD_M-1:0]                              input_enable
 );
 
-  // hton implementation for dynamic byte range
-  `define HTOND(length) \
-    function [length-1:0] htond_``length``(input [length-1:0] data_in); \
-      integer i; \
-      begin \
-        for (i=0; i<length/8; i=i+1) begin \
-          htond_``length``[i*8+:8] = data_in[(length/8-1-i)*8+:8]; \
-        end \
-      end \
-    endfunction
-
-  `HTOND(16)
-  `HTOND(32)
-  `HTOND(48)
-
   // check configuration
   initial begin
     if (APP_ID != 32'h12340001) begin
@@ -769,48 +754,11 @@ module application_core #
 
   ////----------------------------------------Header Inserter---------------//
   //////////////////////////////////////////////////
-  // Ethernet header
-  reg [48-1:0] ethernet_destination_MAC;
-  reg [48-1:0] ethernet_source_MAC;
-  reg [16-1:0] ethernet_type;
-
-  // IPv4 header
-  reg [4-1:0]  ip_version;
-  reg [4-1:0]  ip_header_length;
-  reg [8-1:0]  ip_type_of_service;
-  reg [16-1:0] ip_total_length;
-  reg [16-1:0] ip_identification;
-  reg [3-1:0]  ip_flags;
-  reg [13-1:0] ip_fragment_offset;
-  reg [8-1:0]  ip_time_to_live;
-  reg [8-1:0]  ip_protocol;
-  reg [16-1:0] ip_header_checksum;
-  reg [32-1:0] ip_source_IP_address;
-  reg [32-1:0] ip_destination_IP_address;
-
-  reg [32-1:0] ip_header_checksum_reg0;
-  reg [32-1:0] ip_header_checksum_reg1;
-
-  // UDP header
-  reg [16-1:0] udp_source;
-  reg [16-1:0] udp_destination;
-  reg [16-1:0] udp_length;
-  reg [16-1:0] udp_checksum;
-
-  localparam HEADER_LENGTH = 336;
-
-  wire [HEADER_LENGTH-1:0]     header;
-
-  reg  [HEADER_LENGTH-1:0]     cdc_axis_tdata_reg;
-
-  reg                          new_packet;
-  reg                          tlast_sig;
-
   wire                         packet_axis_tready;
-  reg                          packet_axis_tvalid;
-  reg  [AXIS_DATA_WIDTH-1:0]   packet_axis_tdata;
-  reg  [AXIS_DATA_WIDTH/8-1:0] packet_axis_tkeep;
-  reg                          packet_axis_tlast;
+  wire                         packet_axis_tvalid;
+  wire [AXIS_DATA_WIDTH-1:0]   packet_axis_tdata;
+  wire [AXIS_DATA_WIDTH/8-1:0] packet_axis_tkeep;
+  wire                         packet_axis_tlast;
 
   reg                          packet_buffer_axis_tready;
   wire                         packet_buffer_axis_tvalid;
@@ -818,153 +766,73 @@ module application_core #
   wire                         packet_buffer_axis_tlast;
   wire [AXIS_DATA_WIDTH/8-1:0] packet_buffer_axis_tkeep;
 
-  // temporary storage
-  always @(posedge clk)
-  begin
-    if (!rstn) begin
-      cdc_axis_tdata_reg <= {HEADER_LENGTH{1'b0}};
-    end else begin
-      if (cdc_axis_tvalid && packet_axis_tready) begin
-        cdc_axis_tdata_reg <= cdc_axis_tdata[AXIS_DATA_WIDTH-1:AXIS_DATA_WIDTH-HEADER_LENGTH];
-      end
-    end
-  end
 
-  // ready signal generation
-  assign cdc_axis_tready = ~packet_tlast && packet_axis_tready;
+  // Ethernet header
+  reg [48-1:0]  ethernet_destination_MAC;
+  reg [48-1:0]  ethernet_source_MAC;
+  reg [16-1:0]  ethernet_type;
 
-  // header concatenation
-  assign header = {
-    htond_16(udp_checksum),
-    htond_16(udp_length),
-    htond_16(udp_destination),
-    htond_16(udp_source),
-    htond_32(ip_destination_IP_address),
-    htond_32(ip_source_IP_address),
-    htond_16(ip_header_checksum),
-    htond_16({ip_time_to_live, ip_protocol}),
-    htond_16({ip_flags, ip_fragment_offset}),
-    htond_16(ip_identification),
-    htond_16(ip_total_length),
-    htond_16({ip_version, ip_header_length, ip_type_of_service}),
-    htond_16(ethernet_type),
-    htond_48(ethernet_source_MAC),
-    htond_48(ethernet_destination_MAC)};
+  // IPv4 header
+  reg [4-1:0]   ip_version;
+  reg [4-1:0]   ip_header_length;
+  reg [8-1:0]   ip_type_of_service;
+  wire [16-1:0] ip_total_length;
+  reg [16-1:0]  ip_identification;
+  reg [3-1:0]   ip_flags;
+  reg [13-1:0]  ip_fragment_offset;
+  reg [8-1:0]   ip_time_to_live;
+  reg [8-1:0]   ip_protocol;
+  wire [16-1:0] ip_header_checksum;
+  reg [32-1:0]  ip_source_IP_address;
+  reg [32-1:0]  ip_destination_IP_address;
 
-  // ip header checksum calculation
-  always @(posedge clk)
-  begin
-    if (!rstn) begin
-      ip_header_checksum_reg0 <= 'd0;
-      ip_header_checksum_reg1 <= 'd0;
-      ip_header_checksum <= 'd0;
-    end else begin
-      ip_header_checksum_reg0 <= {16'h0000, {ip_version, ip_header_length, ip_type_of_service}} +
-        {16'h0000, ip_total_length} +
-        {16'h0000, ip_identification} +
-        {16'h0000, {ip_flags, ip_fragment_offset}} +
-        {16'h0000, {ip_time_to_live, ip_protocol}} +
-        {16'h0000, ip_source_IP_address[31:16]} +
-        {16'h0000, ip_source_IP_address[15:0]} +
-        {16'h0000, ip_destination_IP_address[31:16]} +
-        {16'h0000, ip_destination_IP_address[15:0]};
+  // UDP header
+  reg [16-1:0]  udp_source;
+  reg [16-1:0]  udp_destination;
+  wire [16-1:0] udp_length;
+  reg [16-1:0]  udp_checksum;
 
-      ip_header_checksum_reg1 <= ip_header_checksum_reg0[31:16] + ip_header_checksum_reg0[15:0];
+  wire packet_sent;
 
-      ip_header_checksum <= ~ip_header_checksum_reg1;
-    end
-  end
+  assign packet_sent = packet_buffer_axis_tready && packet_buffer_axis_tvalid && packet_buffer_axis_tlast;
 
-  // ip total length calculation
-  always @(posedge clk)
-  begin
-    if (!rstn) begin
-      ip_total_length <= 16'h0;
-    end else begin
-      ip_total_length <= 4*ip_header_length + udp_length;
-    end
-  end
-
-  // udp total length calculation
-  always @(posedge clk)
-  begin
-    if (!rstn) begin
-      udp_length <= 16'd0;
-    end else begin
-      udp_length <= 16'h8 + INPUT_WIDTH*packet_size_dynamic/8;
-    end
-  end
-
-  // new packet marking
-  always @(posedge clk)
-  begin
-    if (!rstn) begin
-      new_packet <= 1'b1;
-    end else begin
-      if (packet_axis_tready && run_packetizer) begin
-        if (packet_tlast) begin
-          new_packet <= 1'b1;
-        end else if (cdc_axis_tvalid) begin
-          new_packet <= 1'b0;
-        end
-      end
-    end
-  end
-
-  integer j;
-  reg [HEADER_LENGTH-1:0] reg_part1;
-  reg [AXIS_DATA_WIDTH-1-HEADER_LENGTH:0] reg_part2;
-
-  // raw data to network byte order
-  always @(*)
-  begin
-    for (j=0; j<HEADER_LENGTH/16; j=j+1) begin
-      reg_part1[j*16+:16] = htond_16(cdc_axis_tdata_reg[j*16+:16]);
-    end
-    for (j=0; j<(AXIS_DATA_WIDTH-HEADER_LENGTH)/16; j=j+1) begin
-      reg_part2[j*16+:16] = htond_16(cdc_axis_tdata[j*16+:16]);
-    end
-  end
-
-  // header insertion
-  always @(posedge clk)
-  begin
-    if (!rstn) begin
-      packet_axis_tvalid <= 1'b0;
-      packet_axis_tdata <= {AXIS_DATA_WIDTH-1{1'b0}};
-      packet_axis_tkeep <= {AXIS_DATA_WIDTH/8-1{1'b0}};
-      packet_axis_tlast <= 1'b0;
-    end else begin
-      if (packet_axis_tready && run_packetizer) begin
-        // valid
-        if (cdc_axis_tvalid || packet_tlast) begin
-          packet_axis_tvalid <= 1'b1;
-        end else begin
-          packet_axis_tvalid <= 1'b0;
-        end
-        // data, keep and last
-        if (cdc_axis_tvalid && cdc_axis_tready) begin
-          if (new_packet) begin
-            packet_axis_tdata <= {reg_part2, header};
-            packet_axis_tkeep <= {AXIS_DATA_WIDTH/8{1'b1}};
-            packet_axis_tlast <= 1'b0;
-          end else begin
-            packet_axis_tdata <= {reg_part2, reg_part1};
-            packet_axis_tkeep <= {AXIS_DATA_WIDTH/8{1'b1}};
-            packet_axis_tlast <= 1'b0;
-          end
-        end else if (packet_tlast) begin
-          packet_axis_tdata <= {{AXIS_DATA_WIDTH-HEADER_LENGTH{1'b0}}, reg_part1};
-          packet_axis_tkeep <= {{(AXIS_DATA_WIDTH-HEADER_LENGTH)/8{1'b0}}, {HEADER_LENGTH/8{1'b1}}};
-          packet_axis_tlast <= 1'b1;
-        end
-      end else begin
-        if (!run_packetizer && packet_buffer_axis_tready && packet_buffer_axis_tvalid && packet_buffer_axis_tlast) begin
-          packet_axis_tvalid <= 1'b0;
-        end
-      end
-    end
-  end
+  header_inserter #(
+    .AXIS_DATA_WIDTH(AXIS_DATA_WIDTH),
+    .INPUT_WIDTH(INPUT_WIDTH)
+  ) header_inserter_inst (
+    .clk(clk),
+    .rstn(rstn),
+    .ethernet_destination_MAC(ethernet_destination_MAC),
+    .ethernet_source_MAC(ethernet_source_MAC),
+    .ethernet_type(ethernet_type),
+    .ip_version(ip_version),
+    .ip_header_length(ip_header_length),
+    .ip_type_of_service(ip_type_of_service),
+    .ip_total_length(ip_total_length),
+    .ip_identification(ip_identification),
+    .ip_flags(ip_flags),
+    .ip_fragment_offset(ip_fragment_offset),
+    .ip_time_to_live(ip_time_to_live),
+    .ip_protocol(ip_protocol),
+    .ip_header_checksum(ip_header_checksum),
+    .ip_source_IP_address(ip_source_IP_address),
+    .ip_destination_IP_address(ip_destination_IP_address),
+    .udp_source(udp_source),
+    .udp_destination(udp_destination),
+    .udp_length(udp_length),
+    .udp_checksum(udp_checksum),
+    .packet_size(packet_size),
+    .run_packetizer(run_packetizer),
+    .packet_sent(packet_sent),
+    .input_tvalid(cdc_axis_tvalid),
+    .input_tready(cdc_axis_tready),
+    .input_tdata(cdc_axis_tdata),
+    .packet_tlast(packet_tlast),
+    .output_tready(packet_axis_tready),
+    .output_tvalid(packet_axis_tvalid),
+    .output_tdata(packet_axis_tdata),
+    .output_tkeep(packet_axis_tkeep),
+    .output_tlast(packet_axis_tlast));
 
   ////----------------------------------------Packet Buffer FIFO----------------------//
   //////////////////////////////////////////////////
