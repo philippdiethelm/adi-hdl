@@ -2,13 +2,13 @@
 
  // Copyright (c) 2023 The Regents of the University of California
  // Copyright (c) 2024 - 2025 Analog Devices, Inc. All rights reserved
- 
+
 
  // This file repackages Corundum MQNIC Core AXI with the sole purpose of
  // providing it as an IP Core.
  // The original file can be refereed at:
  // https://github.com/ucsdsysnet/corundum/blob/master/fpga/common/rtl/mqnic_core_axi.v
- 
+
 
 // Language: Verilog 2001
 
@@ -18,7 +18,7 @@
 
 
  // Application block
- 
+
 module application_core #
 (
   // Structural configuration
@@ -113,7 +113,7 @@ module application_core #
   // Statistics counter subsystem
   parameter STAT_INC_WIDTH = 24,
   parameter STAT_ID_WIDTH = 12,
-  
+
   // Input stream
   parameter INPUT_WIDTH = 2048,
   parameter JESD_M = 4
@@ -519,6 +519,7 @@ module application_core #
   input  wire                                           jtag_tms,
   input  wire                                           jtag_tck,
 
+  // Input data
   input  wire                                           input_clk,
   input  wire                                           input_rstn,
 
@@ -616,7 +617,7 @@ module application_core #
       end
     end
   end
-  
+
   sync_bits #(
     .NUM_OF_BITS(1)
   ) sync_bits_run_packetizer (
@@ -660,7 +661,7 @@ module application_core #
     .m_axis_empty(),
     .m_axis_almost_empty(),
     .m_axis_level(),
-  
+
     .s_axis_aclk(input_clk),
     .s_axis_aresetn(input_rstn_gated),
     .s_axis_ready(input_axis_tready_buffered),
@@ -671,7 +672,7 @@ module application_core #
     .s_axis_full(),
     .s_axis_almost_full(),
     .s_axis_room());
-  
+
   ////----------------------------------------Packetizer--------------------//
   //////////////////////////////////////////////////
   reg  [15:0] sample_counter;
@@ -696,7 +697,7 @@ module application_core #
       end
     end
   end
-  
+
   sync_bits #(
     .NUM_OF_BITS(1)
   ) sync_bits_input_enable_ff (
@@ -736,7 +737,7 @@ module application_core #
     end
   endfunction
 
-  assign packet_size_dynamic_calc = (packet_size/(2**$clog2(JESD_M)))*converters(input_enable_cdc);
+  assign packet_size_dynamic_calc = (packet_size/AXIS_DATA_WIDTH*8/(2**$clog2(JESD_M)))*converters(input_enable_cdc);
 
   always @(posedge clk)
   begin
@@ -765,7 +766,7 @@ module application_core #
       end
     end
   end
-  
+
   ////----------------------------------------Header Inserter---------------//
   //////////////////////////////////////////////////
   // Ethernet header
@@ -858,14 +859,14 @@ module application_core #
       ip_header_checksum_reg1 <= 'd0;
       ip_header_checksum <= 'd0;
     end else begin
-      ip_header_checksum_reg0 <= {16'h0000, {ip_version, ip_header_length, ip_type_of_service}} + 
-        {16'h0000, ip_total_length} + 
-        {16'h0000, ip_identification} + 
-        {16'h0000, {ip_flags, ip_fragment_offset}} + 
-        {16'h0000, {ip_time_to_live, ip_protocol}} + 
-        {16'h0000, ip_source_IP_address[31:16]} + 
-        {16'h0000, ip_source_IP_address[15:0]} + 
-        {16'h0000, ip_destination_IP_address[31:16]} + 
+      ip_header_checksum_reg0 <= {16'h0000, {ip_version, ip_header_length, ip_type_of_service}} +
+        {16'h0000, ip_total_length} +
+        {16'h0000, ip_identification} +
+        {16'h0000, {ip_flags, ip_fragment_offset}} +
+        {16'h0000, {ip_time_to_live, ip_protocol}} +
+        {16'h0000, ip_source_IP_address[31:16]} +
+        {16'h0000, ip_source_IP_address[15:0]} +
+        {16'h0000, ip_destination_IP_address[31:16]} +
         {16'h0000, ip_destination_IP_address[15:0]};
 
       ip_header_checksum_reg1 <= ip_header_checksum_reg0[31:16] + ip_header_checksum_reg0[15:0];
@@ -883,7 +884,7 @@ module application_core #
       ip_total_length <= 4*ip_header_length + udp_length;
     end
   end
-  
+
   // udp total length calculation
   always @(posedge clk)
   begin
@@ -964,7 +965,7 @@ module application_core #
       end
     end
   end
-  
+
   ////----------------------------------------Packet Buffer FIFO----------------------//
   //////////////////////////////////////////////////
   wire packet_buffer_almost_full;
@@ -1101,8 +1102,6 @@ module application_core #
   reg clear_counter_reg;
   reg [31:0] counter_reg;
   reg [31:0] timer;
-  // Switch
-  reg switch;
 
   always @(posedge clk)
   begin
@@ -1137,8 +1136,6 @@ module application_core #
       udp_source <= 16'h1234;
       udp_destination <= 16'h5678;
       udp_checksum <= 16'h0000;
-      // output data stream switch
-      switch <= 1'b0;
     end else begin
       up_wack <= up_wreq;
       up_rack <= up_rreq;
@@ -1155,7 +1152,7 @@ module application_core #
           // Data generator
           'h5: start_app <= up_wdata[0];
           // Packetizer
-          'h6: packet_size <= up_wdata[7:0];
+          'h6: packet_size <= up_wdata[15:0];
           // Ethernet header
           'h7: ethernet_destination_MAC[48-1:32] <= up_wdata[16-1:0];
           'h8: ethernet_destination_MAC[31:0] <= up_wdata;
@@ -1177,8 +1174,6 @@ module application_core #
           'h18: udp_source <= up_wdata[16-1:0];
           'h19: udp_destination <= up_wdata[16-1:0];
           'h1B: udp_checksum <= up_wdata[16-1:0];
-          // Switch
-          'h1C: switch <= up_wdata[0];
           default: ;
         endcase
       end else begin
@@ -1196,7 +1191,7 @@ module application_core #
           // Data generator
           'h5: up_rdata <= {{31{1'b0}}, start_app};
           // Packetizer
-          'h6: up_rdata <= {{24{1'b0}}, packet_size};
+          'h6: up_rdata <= {{16{1'b0}}, packet_size};
           // Ethernet header
           'h7: up_rdata <= {{16{1'b0}}, ethernet_destination_MAC[48-1:32]};
           'h8: up_rdata <= ethernet_destination_MAC[31:0];
@@ -1221,8 +1216,6 @@ module application_core #
           'h19: up_rdata <= {{16{1'b0}}, udp_destination};
           'h1A: up_rdata <= {{16{1'b0}}, udp_length};
           'h1B: up_rdata <= {{16{1'b0}}, udp_checksum};
-          // Switch
-          'h1C: up_rdata <= {{31{1'b0}}, switch};
           default: up_rdata <= 32'd0;
         endcase
       end else begin
@@ -1296,7 +1289,7 @@ module application_core #
   assign m_axil_ctrl_arprot = 0;
   assign m_axil_ctrl_arvalid = 1'b0;
   assign m_axil_ctrl_rready = 1'b1;
-  
+
   // DMA interface (control)
   assign m_axis_ctrl_dma_read_desc_dma_addr = 0;
   assign m_axis_ctrl_dma_read_desc_ram_sel = 0;
@@ -1364,7 +1357,7 @@ module application_core #
   // Ethernet (synchronous MAC interface - low latency raw traffic)
   reg datapath_switch; // 0 - OS
                        // 1 - Packet
-  
+
   always @(posedge clk)
   begin
     if (!rstn) begin
@@ -1380,7 +1373,6 @@ module application_core #
 
   always @(*)
   begin
-    // if (!switch) begin
     if (!datapath_switch) begin
       m_axis_sync_tx_tdata = os_buffer_axis_tdata;
       m_axis_sync_tx_tkeep = os_buffer_axis_tkeep;
@@ -1401,7 +1393,7 @@ module application_core #
       os_buffer_axis_tready = 1'b0;
     end
   end
-  
+
   assign m_axis_sync_tx_cpl_ts = s_axis_sync_tx_cpl_ts;
   assign m_axis_sync_tx_cpl_tag = s_axis_sync_tx_cpl_tag;
   assign m_axis_sync_tx_cpl_valid = s_axis_sync_tx_cpl_valid;
