@@ -886,22 +886,22 @@ module application_core #
   wire [AXIS_SYNC_TX_USER_WIDTH-1:0] os_buffer_axis_tuser;
 
   util_axis_fifo #(
-    .DATA_WIDTH(AXIS_SYNC_DATA_WIDTH),
+    .DATA_WIDTH(AXIS_SYNC_DATA_WIDTH/8*9 + AXIS_SYNC_TX_USER_WIDTH),
     .ADDRESS_WIDTH($clog2(12288/AXIS_SYNC_DATA_WIDTH)+1),
     .ASYNC_CLK(0),
     .M_AXIS_REGISTERED(1),
     .ALMOST_EMPTY_THRESHOLD(),
     .ALMOST_FULL_THRESHOLD(),
     .TLAST_EN(1),
-    .TKEEP_EN(1),
+    .TKEEP_EN(0),
     .REMOVE_NULL_BEAT_EN(0)
   ) os_buffer_fifo (
     .m_axis_aclk(clk),
     .m_axis_aresetn(rstn),
     .m_axis_ready(os_buffer_axis_tready),
     .m_axis_valid(os_buffer_axis_tvalid),
-    .m_axis_data(os_buffer_axis_tdata),
-    .m_axis_tkeep(os_buffer_axis_tkeep),
+    .m_axis_data({os_buffer_axis_tdata, os_buffer_axis_tkeep, os_buffer_axis_tuser}),
+    .m_axis_tkeep(),
     .m_axis_tlast(os_buffer_axis_tlast),
     .m_axis_level(),
     .m_axis_empty(),
@@ -911,42 +911,9 @@ module application_core #
     .s_axis_aresetn(rstn),
     .s_axis_ready(s_axis_sync_tx_tready),
     .s_axis_valid(s_axis_sync_tx_tvalid),
-    .s_axis_data(s_axis_sync_tx_tdata),
-    .s_axis_tkeep(s_axis_sync_tx_tkeep),
-    .s_axis_tlast(s_axis_sync_tx_tlast),
-    .s_axis_room(),
-    .s_axis_full(),
-    .s_axis_almost_full());
-
-  util_axis_fifo #(
-    .DATA_WIDTH(AXIS_SYNC_TX_USER_WIDTH),
-    .ADDRESS_WIDTH($clog2(12288/AXIS_SYNC_DATA_WIDTH)+1),
-    .ASYNC_CLK(0),
-    .M_AXIS_REGISTERED(1),
-    .ALMOST_EMPTY_THRESHOLD(),
-    .ALMOST_FULL_THRESHOLD(),
-    .TLAST_EN(0),
-    .TKEEP_EN(0),
-    .REMOVE_NULL_BEAT_EN(0)
-  ) os_buffer_fifo_tuser (
-    .m_axis_aclk(clk),
-    .m_axis_aresetn(rstn),
-    .m_axis_ready(os_buffer_axis_tready),
-    .m_axis_valid(),
-    .m_axis_data(os_buffer_axis_tuser),
-    .m_axis_tkeep(),
-    .m_axis_tlast(),
-    .m_axis_level(),
-    .m_axis_empty(),
-    .m_axis_almost_empty(),
-
-    .s_axis_aclk(clk),
-    .s_axis_aresetn(rstn),
-    .s_axis_ready(),
-    .s_axis_valid(s_axis_sync_tx_tvalid),
-    .s_axis_data(s_axis_sync_tx_tuser),
+    .s_axis_data({s_axis_sync_tx_tdata, s_axis_sync_tx_tkeep, s_axis_sync_tx_tuser}),
     .s_axis_tkeep(),
-    .s_axis_tlast(),
+    .s_axis_tlast(s_axis_sync_tx_tlast),
     .s_axis_room(),
     .s_axis_full(),
     .s_axis_almost_full());
