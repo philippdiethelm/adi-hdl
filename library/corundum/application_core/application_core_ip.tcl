@@ -14,6 +14,7 @@ adi_ip_create application_core
 adi_ip_files application_core [list \
   "application_core.v" \
   "header_inserter.v" \
+  "application_regmap.v" \
   "$ad_hdl_dir/library/common/up_axi.v" \
   "$ad_hdl_dir/library/common/ad_rst.v" \
   "$ad_hdl_dir/library/xilinx/common/ad_rst_constr.xdc" \

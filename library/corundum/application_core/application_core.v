@@ -579,7 +579,7 @@ module application_core #
 
   ////----------------------------------------Start application---------------//
   //////////////////////////////////////////////////
-  reg  start_app;
+  wire start_app;
   reg  run_packetizer;
   wire run_packetizer_cdc;
 
@@ -661,7 +661,7 @@ module application_core #
   ////----------------------------------------Packetizer--------------------//
   //////////////////////////////////////////////////
   reg  [15:0] sample_counter;
-  reg  [15:0] packet_size;
+  wire [15:0] packet_size;
   reg  [15:0] packet_size_dynamic;
   wire [15:0] packet_size_dynamic_calc;
 
@@ -768,29 +768,29 @@ module application_core #
 
 
   // Ethernet header
-  reg [48-1:0]  ethernet_destination_MAC;
-  reg [48-1:0]  ethernet_source_MAC;
-  reg [16-1:0]  ethernet_type;
+  wire [48-1:0] ethernet_destination_MAC;
+  wire [48-1:0] ethernet_source_MAC;
+  wire [16-1:0] ethernet_type;
 
   // IPv4 header
-  reg [4-1:0]   ip_version;
-  reg [4-1:0]   ip_header_length;
-  reg [8-1:0]   ip_type_of_service;
+  wire [4-1:0]  ip_version;
+  wire [4-1:0]  ip_header_length;
+  wire [8-1:0]  ip_type_of_service;
   wire [16-1:0] ip_total_length;
-  reg [16-1:0]  ip_identification;
-  reg [3-1:0]   ip_flags;
-  reg [13-1:0]  ip_fragment_offset;
-  reg [8-1:0]   ip_time_to_live;
-  reg [8-1:0]   ip_protocol;
+  wire [16-1:0] ip_identification;
+  wire [3-1:0]  ip_flags;
+  wire [13-1:0] ip_fragment_offset;
+  wire [8-1:0]  ip_time_to_live;
+  wire [8-1:0]  ip_protocol;
   wire [16-1:0] ip_header_checksum;
-  reg [32-1:0]  ip_source_IP_address;
-  reg [32-1:0]  ip_destination_IP_address;
+  wire [32-1:0] ip_source_IP_address;
+  wire [32-1:0] ip_destination_IP_address;
 
   // UDP header
-  reg [16-1:0]  udp_source;
-  reg [16-1:0]  udp_destination;
+  wire [16-1:0] udp_source;
+  wire [16-1:0] udp_destination;
   wire [16-1:0] udp_length;
-  reg [16-1:0]  udp_checksum;
+  wire [16-1:0] udp_checksum;
 
   wire packet_sent;
 
@@ -953,181 +953,69 @@ module application_core #
 
   ////----------------------------------------AXI Interface-----------------//
   //////////////////////////////////////////////////
-  wire                              up_wreq;
-  wire [(AXIL_CTRL_ADDR_WIDTH-3):0] up_waddr;
-  wire [31:0]                       up_wdata;
-  reg                               up_wack;
-  wire                              up_rreq;
-  wire [(AXIL_CTRL_ADDR_WIDTH-3):0] up_raddr;
-  reg  [31:0]                       up_rdata;
-  reg                               up_rack;
 
-  // Generic
-  reg [31:0] version_reg = 'h1234ABCD;
-  reg [31:0] scratch_reg;
-  reg start_counter_reg;
-  reg stop_counter_reg;
-  reg clear_counter_reg;
-  reg [31:0] counter_reg;
+  wire                            start_counter_reg;
+  wire                            stop_counter_reg;
+  wire                            clear_counter_reg;
+  reg  [31:0]                     counter_reg;
+
+  application_regmap #(
+    .AXIL_CTRL_DATA_WIDTH(AXIL_CTRL_DATA_WIDTH),
+    .AXIL_CTRL_ADDR_WIDTH(AXIL_CTRL_ADDR_WIDTH),
+    .AXIL_CTRL_STRB_WIDTH(AXIL_CTRL_STRB_WIDTH)
+  ) application_regmap_inst (
+    .clk(clk),
+    .rstn(rstn),
+
+    .s_axil_ctrl_awaddr(s_axil_ctrl_awaddr),
+    .s_axil_ctrl_awprot(s_axil_ctrl_awprot),
+    .s_axil_ctrl_awvalid(s_axil_ctrl_awvalid),
+    .s_axil_ctrl_awready(s_axil_ctrl_awready),
+    .s_axil_ctrl_wdata(s_axil_ctrl_wdata),
+    .s_axil_ctrl_wstrb(s_axil_ctrl_wstrb),
+    .s_axil_ctrl_wvalid(s_axil_ctrl_wvalid),
+    .s_axil_ctrl_wready(s_axil_ctrl_wready),
+    .s_axil_ctrl_bresp(s_axil_ctrl_bresp),
+    .s_axil_ctrl_bvalid(s_axil_ctrl_bvalid),
+    .s_axil_ctrl_bready(s_axil_ctrl_bready),
+    .s_axil_ctrl_araddr(s_axil_ctrl_araddr),
+    .s_axil_ctrl_arprot(s_axil_ctrl_arprot),
+    .s_axil_ctrl_arvalid(s_axil_ctrl_arvalid),
+    .s_axil_ctrl_arready(s_axil_ctrl_arready),
+    .s_axil_ctrl_rdata(s_axil_ctrl_rdata),
+    .s_axil_ctrl_rresp(s_axil_ctrl_rresp),
+    .s_axil_ctrl_rvalid(s_axil_ctrl_rvalid),
+    .s_axil_ctrl_rready(s_axil_ctrl_rready),
+
+    .start_app(start_app),
+    .start_counter_reg(start_counter_reg),
+    .stop_counter_reg(stop_counter_reg),
+    .clear_counter_reg(clear_counter_reg),
+    .counter_reg(counter_reg),
+    .packet_size(packet_size),
+
+    .ethernet_destination_MAC(ethernet_destination_MAC),
+    .ethernet_source_MAC(ethernet_source_MAC),
+    .ethernet_type(ethernet_type),
+    .ip_version(ip_version),
+    .ip_header_length(ip_header_length),
+    .ip_type_of_service(ip_type_of_service),
+    .ip_total_length(ip_total_length),
+    .ip_identification(ip_identification),
+    .ip_flags(ip_flags),
+    .ip_fragment_offset(ip_fragment_offset),
+    .ip_time_to_live(ip_time_to_live),
+    .ip_protocol(ip_protocol),
+    .ip_header_checksum(ip_header_checksum),
+    .ip_source_IP_address(ip_source_IP_address),
+    .ip_destination_IP_address(ip_destination_IP_address),
+    .udp_source(udp_source),
+    .udp_destination(udp_destination),
+    .udp_length(udp_length),
+    .udp_checksum(udp_checksum));
+
+  // Count packets sent in 1 second
   reg [31:0] timer;
-
-  always @(posedge clk)
-  begin
-    if (rstn == 1'b0)
-    begin
-      up_wack <= 1'b0;
-      up_rack <= 1'b0;
-
-      // Generic
-      scratch_reg <= 'h0;
-      clear_counter_reg <= 1'b0;
-      // Data generator
-      start_app <= 1'b0;
-      // Packetizer
-      packet_size <= 8'd4;
-      // Ethernet header
-      ethernet_destination_MAC <= 48'hB83FD22A0BF1;
-      ethernet_source_MAC <= 48'h000A35000102;
-      ethernet_type <= 16'h0800;
-      // IPv4 header
-      ip_version <= 4'h4;
-      ip_header_length <= 4'h5;
-      ip_type_of_service <= 8'h00;
-      ip_identification <= 16'h0000;
-      ip_flags <= 3'h0;
-      ip_fragment_offset <= 13'h0000;
-      ip_time_to_live <= 8'h80;
-      ip_protocol <= 8'h11;
-      ip_source_IP_address <= {8'd192, 8'd168, 8'd0, 8'd69};
-      ip_destination_IP_address <= {8'd192, 8'd168, 8'd0, 8'd10};
-      // UDP header
-      udp_source <= 16'h1234;
-      udp_destination <= 16'h5678;
-      udp_checksum <= 16'h0000;
-    end else begin
-      up_wack <= up_wreq;
-      up_rack <= up_rreq;
-
-      if (up_wreq == 1'b1) begin
-        case (up_waddr)
-          // Generic
-          'h1: scratch_reg <= up_wdata;
-          'h2: begin
-            start_counter_reg <= up_wdata[0];
-            stop_counter_reg <= up_wdata[1];
-          end
-          'h3: clear_counter_reg <= up_wdata[0];
-          // Data generator
-          'h5: start_app <= up_wdata[0];
-          // Packetizer
-          'h6: packet_size <= up_wdata[15:0];
-          // Ethernet header
-          'h7: ethernet_destination_MAC[48-1:32] <= up_wdata[16-1:0];
-          'h8: ethernet_destination_MAC[31:0] <= up_wdata;
-          'h9: ethernet_source_MAC[48-1:32] <= up_wdata[16-1:0];
-          'hA: ethernet_source_MAC[31:0] <= up_wdata;
-          'hB: ethernet_type <= up_wdata[16-1:0];
-          // IPv4 header
-          'hC: ip_version <= up_wdata[4-1:0];
-          'hD: ip_header_length <= up_wdata[4-1:0];
-          'hE: ip_type_of_service <= up_wdata[8-1:0];
-          'h10: ip_identification <= up_wdata[16-1:0];
-          'h11: ip_flags <= up_wdata[3-1:0];
-          'h12: ip_fragment_offset <= up_wdata[13-1:0];
-          'h13: ip_time_to_live <= up_wdata[8-1:0];
-          'h14: ip_protocol <= up_wdata[8-1:0];
-          'h16: ip_source_IP_address <= up_wdata[32-1:0];
-          'h17: ip_destination_IP_address <= up_wdata[32-1:0];
-          // UDP header
-          'h18: udp_source <= up_wdata[16-1:0];
-          'h19: udp_destination <= up_wdata[16-1:0];
-          'h1B: udp_checksum <= up_wdata[16-1:0];
-          default: ;
-        endcase
-      end else begin
-        clear_counter_reg <= 1'b0;
-      end
-
-      if (up_rreq == 1'b1) begin
-        case (up_raddr)
-          // Generic
-          'h0: up_rdata <= version_reg;
-          'h1: up_rdata <= scratch_reg;
-          'h2: up_rdata <= {{30{1'b0}}, stop_counter_reg, start_counter_reg};
-          'h3: up_rdata <= {{31{1'b0}}, clear_counter_reg};
-          'h4: up_rdata <= counter_reg;
-          // Data generator
-          'h5: up_rdata <= {{31{1'b0}}, start_app};
-          // Packetizer
-          'h6: up_rdata <= {{16{1'b0}}, packet_size};
-          // Ethernet header
-          'h7: up_rdata <= {{16{1'b0}}, ethernet_destination_MAC[48-1:32]};
-          'h8: up_rdata <= ethernet_destination_MAC[31:0];
-          'h9: up_rdata <= {{16{1'b0}}, ethernet_source_MAC[48-1:32]};
-          'hA: up_rdata <= ethernet_source_MAC[31:0];
-          'hB: up_rdata <= {{16{1'b0}}, ethernet_type};
-          // IPv4 header
-          'hC: up_rdata <= {{28{1'b0}}, ip_version};
-          'hD: up_rdata <= {{28{1'b0}}, ip_header_length};
-          'hE: up_rdata <= {{24{1'b0}}, ip_type_of_service};
-          'hF: up_rdata <= {{16{1'b0}}, ip_total_length};
-          'h10: up_rdata <= {{16{1'b0}}, ip_identification};
-          'h11: up_rdata <= {{29{1'b0}}, ip_flags};
-          'h12: up_rdata <= {{19{1'b0}}, ip_fragment_offset};
-          'h13: up_rdata <= {{24{1'b0}}, ip_time_to_live};
-          'h14: up_rdata <= {{24{1'b0}}, ip_protocol};
-          'h15: up_rdata <= {{16{1'b0}}, ip_header_checksum};
-          'h16: up_rdata <= ip_source_IP_address;
-          'h17: up_rdata <= ip_destination_IP_address;
-          // UDP header
-          'h18: up_rdata <= {{16{1'b0}}, udp_source};
-          'h19: up_rdata <= {{16{1'b0}}, udp_destination};
-          'h1A: up_rdata <= {{16{1'b0}}, udp_length};
-          'h1B: up_rdata <= {{16{1'b0}}, udp_checksum};
-          default: up_rdata <= 32'd0;
-        endcase
-      end else begin
-        up_rdata <= 32'd0;
-      end
-    end
-  end
-
-  up_axi #(
-    .AXI_ADDRESS_WIDTH(AXIL_CTRL_ADDR_WIDTH)
-  ) i_up_axi (
-    .up_rstn            (rstn),
-    .up_clk             (clk),
-    .up_axi_awvalid     (s_axil_ctrl_awvalid),
-    .up_axi_awaddr      (s_axil_ctrl_awaddr),
-    .up_axi_awready     (s_axil_ctrl_awready),
-    .up_axi_wvalid      (s_axil_ctrl_wvalid),
-    .up_axi_wdata       (s_axil_ctrl_wdata),
-    .up_axi_wstrb       (s_axil_ctrl_wstrb),
-    .up_axi_wready      (s_axil_ctrl_wready),
-    .up_axi_bvalid      (s_axil_ctrl_bvalid),
-    .up_axi_bresp       (s_axil_ctrl_bresp),
-    .up_axi_bready      (s_axil_ctrl_bready),
-    .up_axi_arvalid     (s_axil_ctrl_arvalid),
-    .up_axi_araddr      (s_axil_ctrl_araddr),
-    .up_axi_arready     (s_axil_ctrl_arready),
-    .up_axi_rvalid      (s_axil_ctrl_rvalid),
-    .up_axi_rresp       (s_axil_ctrl_rresp),
-    .up_axi_rdata       (s_axil_ctrl_rdata),
-    .up_axi_rready      (s_axil_ctrl_rready),
-    .up_wreq            (up_wreq),
-    .up_waddr           (up_waddr),
-    .up_wdata           (up_wdata),
-    .up_wack            (up_wack),
-    .up_rreq            (up_rreq),
-    .up_raddr           (up_raddr),
-    .up_rdata           (up_rdata),
-    .up_rack            (up_rack));
-
-  reg m_axis_sync_tx_tlast_reg;
-
-  always @(posedge clk) begin
-    m_axis_sync_tx_tlast_reg <= m_axis_sync_tx_tlast;
-  end
 
   always @(posedge clk) begin
     if (rst || clear_counter_reg) begin
@@ -1135,8 +1023,9 @@ module application_core #
       timer <= 32'd0;
     end else begin
       if (start_counter_reg || timer != 32'd0) begin
-        if (m_axis_sync_tx_tvalid && m_axis_sync_tx_tready && (!m_axis_sync_tx_tlast_reg && m_axis_sync_tx_tlast)) begin
+        if (m_axis_sync_tx_tvalid && m_axis_sync_tx_tready && m_axis_sync_tx_tlast) begin
           counter_reg <= counter_reg + 1'b1;
+          timer <= timer + 1;
         end
         if (timer == 32'd250000000) begin
           timer <= 32'd0;

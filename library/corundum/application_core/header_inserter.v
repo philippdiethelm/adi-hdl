@@ -267,5 +267,3 @@ module header_inserter #(
   end
 
 endmodule
-
-`resetall
