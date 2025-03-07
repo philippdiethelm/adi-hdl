@@ -76,18 +76,18 @@ module header_inserter #(
   input  wire                         packet_sent,
 
   // Input
-  input  wire                         input_tvalid,
-  output wire                         input_tready,
-  input  wire [AXIS_DATA_WIDTH-1:0]   input_tdata,
+  input  wire                         input_axis_tvalid,
+  output wire                         input_axis_tready,
+  input  wire [AXIS_DATA_WIDTH-1:0]   input_axis_tdata,
 
   input  wire                         packet_tlast,
 
   // Output
-  input  wire                         output_tready,
-  output reg                          output_tvalid,
-  output reg  [AXIS_DATA_WIDTH-1:0]   output_tdata,
-  output reg  [AXIS_DATA_WIDTH/8-1:0] output_tkeep,
-  output reg                          output_tlast
+  input  wire                         output_axis_tready,
+  output reg                          output_axis_tvalid,
+  output reg  [AXIS_DATA_WIDTH-1:0]   output_axis_tdata,
+  output reg  [AXIS_DATA_WIDTH/8-1:0] output_axis_tkeep,
+  output reg                          output_axis_tlast
 );
 
   localparam HEADER_LENGTH = 336;
@@ -123,14 +123,14 @@ module header_inserter #(
     if (!rstn) begin
       cdc_axis_tdata_reg <= {HEADER_LENGTH{1'b0}};
     end else begin
-      if (input_tvalid && output_tready) begin
-        cdc_axis_tdata_reg <= input_tdata[AXIS_DATA_WIDTH-1:AXIS_DATA_WIDTH-HEADER_LENGTH];
+      if (input_axis_tvalid && output_axis_tready) begin
+        cdc_axis_tdata_reg <= input_axis_tdata[AXIS_DATA_WIDTH-1:AXIS_DATA_WIDTH-HEADER_LENGTH];
       end
     end
   end
 
   // ready signal generation
-  assign input_tready = ~packet_tlast && output_tready;
+  assign input_axis_tready = ~packet_tlast && output_axis_tready;
 
   // header concatenation
   assign header = {
@@ -200,10 +200,10 @@ module header_inserter #(
     if (!rstn) begin
       new_packet <= 1'b1;
     end else begin
-      if (output_tready && run_packetizer) begin
+      if (output_axis_tready && run_packetizer) begin
         if (packet_tlast) begin
           new_packet <= 1'b1;
-        end else if (input_tvalid) begin
+        end else if (input_axis_tvalid) begin
           new_packet <= 1'b0;
         end
       end
@@ -221,7 +221,7 @@ module header_inserter #(
       reg_part1[j*16+:16] = htond_16(cdc_axis_tdata_reg[j*16+:16]);
     end
     for (j=0; j<(AXIS_DATA_WIDTH-HEADER_LENGTH)/16; j=j+1) begin
-      reg_part2[j*16+:16] = htond_16(input_tdata[j*16+:16]);
+      reg_part2[j*16+:16] = htond_16(input_axis_tdata[j*16+:16]);
     end
   end
 
@@ -229,38 +229,38 @@ module header_inserter #(
   always @(posedge clk)
   begin
     if (!rstn) begin
-      output_tvalid <= 1'b0;
-      output_tdata <= {AXIS_DATA_WIDTH-1{1'b0}};
-      output_tkeep <= {AXIS_DATA_WIDTH/8-1{1'b0}};
-      output_tlast <= 1'b0;
+      output_axis_tvalid <= 1'b0;
+      output_axis_tdata <= {AXIS_DATA_WIDTH-1{1'b0}};
+      output_axis_tkeep <= {AXIS_DATA_WIDTH/8-1{1'b0}};
+      output_axis_tlast <= 1'b0;
     end else begin
-      if (output_tready && run_packetizer) begin
+      if (output_axis_tready && run_packetizer) begin
         // valid
-        if (input_tvalid || packet_tlast) begin
-          output_tvalid <= 1'b1;
+        if (input_axis_tvalid || packet_tlast) begin
+          output_axis_tvalid <= 1'b1;
         end else begin
-          output_tvalid <= 1'b0;
+          output_axis_tvalid <= 1'b0;
         end
         // data, keep and last
-        if (input_tvalid && input_tready) begin
+        if (input_axis_tvalid && input_axis_tready) begin
           if (new_packet) begin
-            output_tdata <= {reg_part2, header};
-            output_tkeep <= {AXIS_DATA_WIDTH/8{1'b1}};
-            output_tlast <= 1'b0;
+            output_axis_tdata <= {reg_part2, header};
+            output_axis_tkeep <= {AXIS_DATA_WIDTH/8{1'b1}};
+            output_axis_tlast <= 1'b0;
           end else begin
-            output_tdata <= {reg_part2, reg_part1};
-            output_tkeep <= {AXIS_DATA_WIDTH/8{1'b1}};
-            output_tlast <= 1'b0;
+            output_axis_tdata <= {reg_part2, reg_part1};
+            output_axis_tkeep <= {AXIS_DATA_WIDTH/8{1'b1}};
+            output_axis_tlast <= 1'b0;
           end
         end else if (packet_tlast) begin
-          output_tdata <= {{AXIS_DATA_WIDTH-HEADER_LENGTH{1'b0}}, reg_part1};
-          output_tkeep <= {{(AXIS_DATA_WIDTH-HEADER_LENGTH)/8{1'b0}}, {HEADER_LENGTH/8{1'b1}}};
-          output_tlast <= 1'b1;
+          output_axis_tdata <= {{AXIS_DATA_WIDTH-HEADER_LENGTH{1'b0}}, reg_part1};
+          output_axis_tkeep <= {{(AXIS_DATA_WIDTH-HEADER_LENGTH)/8{1'b0}}, {HEADER_LENGTH/8{1'b1}}};
+          output_axis_tlast <= 1'b1;
         end
       end else begin
         // stop
         if (!run_packetizer && packet_sent) begin
-          output_tvalid <= 1'b0;
+          output_axis_tvalid <= 1'b0;
         end
       end
     end

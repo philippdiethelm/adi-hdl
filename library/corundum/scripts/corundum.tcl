@@ -35,7 +35,7 @@ create_bd_pin -dir I input_axis_tvalid
 create_bd_pin -dir O input_axis_tready
 create_bd_pin -dir I -from [expr {$INPUT_WIDTH-1}] -to 0 input_axis_tdata
 
-create_bd_pin -dir I -from [expr {$JESD_M-1}] -to 0 input_enable
+create_bd_pin -dir I -from [expr {$CHANNELS-1}] -to 0 input_enable
 
 ad_ip_instance corundum_core corundum_core [list \
   FPGA_ID $FPGA_ID \
@@ -341,7 +341,7 @@ if {$APP_ENABLE == 1} {
     STAT_INC_WIDTH $STAT_INC_WIDTH \
     STAT_ID_WIDTH $STAT_ID_WIDTH \
     INPUT_WIDTH $INPUT_WIDTH \
-    JESD_M $JESD_M \
+    CHANNELS $CHANNELS \
   ]
 
   ad_connect application_core/clk corundum_core/clk
@@ -353,10 +353,10 @@ if {$APP_ENABLE == 1} {
   ad_connect application_core/direct_tx_rst corundum_core/tx_rst
   ad_connect application_core/direct_rx_clk corundum_core/rx_clk
   ad_connect application_core/direct_rx_rst corundum_core/rx_rst
-  
+
   ad_connect application_core/ptp_clock corundum_core/ptp_clock_app
   ad_connect application_core/s_axil_ctrl s_axil_application
-  
+
   ad_connect application_core/input_axis_tvalid input_axis_tvalid
   ad_connect application_core/input_axis_tdata input_axis_tdata
   ad_connect application_core/input_axis_tready input_axis_tready
@@ -397,7 +397,7 @@ if {$APP_ENABLE == 1} {
     ad_connect application_core/m_axis_direct_tx_cpl corundum_core/m_axis_direct_tx_cpl_app
     ad_connect application_core/s_axis_direct_tx_cpl corundum_core/s_axis_direct_tx_cpl_app
   }
-  
+
   if {$APP_AXIS_SYNC_ENABLE} {
     ad_connect application_core/m_axis_sync_tx corundum_core/m_axis_sync_tx_app
     ad_connect application_core/s_axis_sync_tx corundum_core/s_axis_sync_tx_app
@@ -412,7 +412,7 @@ if {$APP_ENABLE == 1} {
   if {$APP_AXIS_IF_ENABLE} {
     ad_connect application_core/m_axis_if_tx corundum_core/m_axis_if_tx_app
     ad_connect application_core/s_axis_if_tx corundum_core/s_axis_if_tx_app
-  
+
     ad_connect application_core/m_axis_if_rx corundum_core/m_axis_if_rx_app
     ad_connect application_core/s_axis_if_rx corundum_core/s_axis_if_rx_app
 

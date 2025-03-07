@@ -147,9 +147,15 @@ if {$ad_project_params(JESD_MODE) == "64B66B"} {
 ad_ip_parameter axi_ddr_cntrl CONFIG.C0_CLOCK_BOARD_INTERFACE default_250mhz_clk1
 ad_ip_parameter axi_ddr_cntrl CONFIG.C0_DDR4_BOARD_INTERFACE ddr4_sdram_c1_062
 
-set INPUT_WIDTH 128
-set JESD_M 8
-set JESD_S 1
+set CHANNELS $ad_project_params(RX_JESD_M)
+set SAMPLES $ad_project_params(RX_JESD_S)
+
+set SAMPLE_WIDTH $ad_project_params(RX_JESD_NP)
+if {$SAMPLE_WIDTH == 12} {
+  set SAMPLE_WIDTH 16
+}
+
+set INPUT_WIDTH [expr $CHANNELS*$SAMPLES*$SAMPLE_WIDTH]
 
 set CPU MB
 
@@ -216,14 +222,14 @@ if {$APP_ENABLE == 1} {
 }
 
 ad_ip_instance util_cpack2 util_corundum_cpack [list \
-  NUM_OF_CHANNELS $JESD_M \
-  SAMPLES_PER_CHANNEL $JESD_S \
-  SAMPLE_DATA_WIDTH 16 \
+  NUM_OF_CHANNELS $CHANNELS \
+  SAMPLES_PER_CHANNEL $SAMPLES \
+  SAMPLE_DATA_WIDTH $SAMPLE_WIDTH \
 ]
 
 ad_connect util_corundum_cpack/clk rx_device_clk
 ad_connect util_corundum_cpack/fifo_wr_en rx_mxfe_tpl_core/adc_valid_0
-for {set i 0} {$i<$JESD_M} {incr i} {
+for {set i 0} {$i<$CHANNELS} {incr i} {
   ad_connect util_corundum_cpack/enable_${i} rx_mxfe_tpl_core/adc_enable_${i}
   ad_connect util_corundum_cpack/fifo_wr_data_${i} rx_mxfe_tpl_core/adc_data_${i}
 }
@@ -256,9 +262,9 @@ ad_connect cpack_reset_sources_corundum/dout cpack_rst_logic_corundum/op1
 ad_connect cpack_rst_logic_corundum/res util_corundum_cpack/reset
 
 ad_ip_instance xlconcat enable_concat_corundum
-ad_ip_parameter enable_concat_corundum config.num_ports $JESD_M
+ad_ip_parameter enable_concat_corundum config.num_ports $CHANNELS
 
-for {set i 0} {$i<$JESD_M} {incr i} {
+for {set i 0} {$i<$CHANNELS} {incr i} {
   ad_connect enable_concat_corundum/In${i} rx_mxfe_tpl_core/adc_enable_${i}
 }
 

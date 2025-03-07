@@ -116,7 +116,7 @@ module application_core #
 
   // Input stream
   parameter INPUT_WIDTH = 2048,
-  parameter JESD_M = 4
+  parameter CHANNELS = 4
 )
 (
   input  wire                                           clk,
@@ -527,7 +527,7 @@ module application_core #
   input  wire                                           input_axis_tvalid,
   output wire                                           input_axis_tready,
 
-  input  wire [JESD_M-1:0]                              input_enable
+  input  wire [CHANNELS-1:0]                            input_enable
 );
 
   // check configuration
@@ -549,6 +549,7 @@ module application_core #
 
   ////----------------------------------------Data generation---------------//
   //////////////////////////////////////////////////
+
   // reg  [7:0]             gen_data;
 
   // reg  [INPUT_WIDTH-1:0] input_axis_tdata;
@@ -579,6 +580,7 @@ module application_core #
 
   ////----------------------------------------Start application---------------//
   //////////////////////////////////////////////////
+
   wire start_app;
   reg  run_packetizer;
   wire run_packetizer_cdc;
@@ -588,7 +590,7 @@ module application_core #
 
   wire input_axis_tready_buffered;
 
-  reg  packet_tlast;
+  wire packet_tlast;
 
   always @(posedge clk)
   begin
@@ -619,6 +621,7 @@ module application_core #
 
   ////----------------------------------------Buffer, CDC and Scaling FIFO----//
   //////////////////////////////////////////////////
+
   wire                       cdc_axis_tvalid;
   wire                       cdc_axis_tready;
   wire [AXIS_DATA_WIDTH-1:0] cdc_axis_tdata;
@@ -660,100 +663,27 @@ module application_core #
 
   ////----------------------------------------Packetizer--------------------//
   //////////////////////////////////////////////////
-  reg  [15:0] sample_counter;
+
   wire [15:0] packet_size;
-  reg  [15:0] packet_size_dynamic;
-  wire [15:0] packet_size_dynamic_calc;
 
-  reg  [JESD_M-1:0] input_enable_old;
-  reg               input_enable_ff;
-  wire              input_enable_ff_cdc;
-  reg               input_enable_ff_cdc2;
-  reg  [JESD_M-1:0] input_enable_cdc;
-
-  always @(posedge input_clk)
-  begin
-    if (!input_rstn) begin
-      input_enable_ff <= 1'b0;
-    end else begin
-      input_enable_old <= input_enable;
-      if (input_enable_old != input_enable) begin
-        input_enable_ff <= ~input_enable_ff;
-      end
-    end
-  end
-
-  sync_bits #(
-    .NUM_OF_BITS(1)
-  ) sync_bits_input_enable_ff (
-    .in_bits(input_enable_ff),
-    .out_resetn(rstn),
-    .out_clk(clk),
-    .out_bits(input_enable_ff_cdc)
+  packetizer #(
+    .AXIS_DATA_WIDTH(AXIS_DATA_WIDTH),
+    .CHANNELS(CHANNELS)
+  ) packetizer_inst (
+    .clk(clk),
+    .rstn(rstn),
+    .input_clk(input_clk),
+    .input_rstn(input_rstn),
+    .input_axis_tvalid(cdc_axis_tvalid),
+    .input_axis_tready(cdc_axis_tready),
+    .input_enable(input_enable),
+    .packet_size(packet_size),
+    .packet_tlast(packet_tlast)
   );
-
-  always @(posedge clk)
-  begin
-    if (!rstn) begin
-      input_enable_ff_cdc2 <= 1'b0;
-    end else begin
-      input_enable_ff_cdc2 <= input_enable_ff_cdc;
-    end
-  end
-
-  always @(posedge clk)
-  begin
-    if (!rstn) begin
-      input_enable_cdc <= {JESD_M{1'b0}};
-    end else begin
-      if (input_enable_ff_cdc2 ^ input_enable_ff_cdc) begin
-        input_enable_cdc <= input_enable;
-      end
-    end
-  end
-
-  function [$clog2(JESD_M):0] converters(input [JESD_M-1:0] input_enable);
-    integer i;
-    begin
-      converters = 0;
-      for (i=0; i<JESD_M; i=i+1) begin
-        converters = converters + input_enable[i];
-      end
-    end
-  endfunction
-
-  assign packet_size_dynamic_calc = (packet_size/AXIS_DATA_WIDTH*8/(2**$clog2(JESD_M)))*converters(input_enable_cdc);
-
-  always @(posedge clk)
-  begin
-    if (!rstn) begin
-      packet_size_dynamic <= packet_size;
-    end else begin
-      packet_size_dynamic <= packet_size_dynamic_calc;
-    end
-  end
-
-  always @(posedge clk)
-  begin
-    if (!rstn) begin
-      sample_counter <= 8'd0;
-      packet_tlast <= 1'b0;
-    end else begin
-      if (cdc_axis_tvalid && cdc_axis_tready) begin
-        if (sample_counter < packet_size_dynamic-1) begin
-          sample_counter <= sample_counter + 1;
-        end else begin
-          sample_counter <= 8'd0;
-          packet_tlast <= 1'b1;
-        end
-      end else begin
-        packet_tlast <= 1'b0;
-      end
-    end
-  end
 
   ////----------------------------------------Header Inserter---------------//
   //////////////////////////////////////////////////
+
   wire                         packet_axis_tready;
   wire                         packet_axis_tvalid;
   wire [AXIS_DATA_WIDTH-1:0]   packet_axis_tdata;
@@ -824,18 +754,19 @@ module application_core #
     .packet_size(packet_size),
     .run_packetizer(run_packetizer),
     .packet_sent(packet_sent),
-    .input_tvalid(cdc_axis_tvalid),
-    .input_tready(cdc_axis_tready),
-    .input_tdata(cdc_axis_tdata),
+    .input_axis_tvalid(cdc_axis_tvalid),
+    .input_axis_tready(cdc_axis_tready),
+    .input_axis_tdata(cdc_axis_tdata),
     .packet_tlast(packet_tlast),
-    .output_tready(packet_axis_tready),
-    .output_tvalid(packet_axis_tvalid),
-    .output_tdata(packet_axis_tdata),
-    .output_tkeep(packet_axis_tkeep),
-    .output_tlast(packet_axis_tlast));
+    .output_axis_tready(packet_axis_tready),
+    .output_axis_tvalid(packet_axis_tvalid),
+    .output_axis_tdata(packet_axis_tdata),
+    .output_axis_tkeep(packet_axis_tkeep),
+    .output_axis_tlast(packet_axis_tlast));
 
   ////----------------------------------------Packet Buffer FIFO----------------------//
   //////////////////////////////////////////////////
+
   wire packet_buffer_almost_full;
   wire packet_buffer_almost_empty;
 
@@ -878,6 +809,7 @@ module application_core #
 
   ////----------------------------------------OS Buffer FIFO----------------------//
   //////////////////////////////////////////////////
+
   reg                                os_buffer_axis_tready;
   wire                               os_buffer_axis_tvalid;
   wire [AXIS_SYNC_DATA_WIDTH-1:0]    os_buffer_axis_tdata;
@@ -980,6 +912,9 @@ module application_core #
     .udp_destination(udp_destination),
     .udp_length(udp_length),
     .udp_checksum(udp_checksum));
+
+  ////----------------------------------------Others-----------------//
+  //////////////////////////////////////////////////
 
   // Count packets sent in 1 second
   reg [31:0] timer;
