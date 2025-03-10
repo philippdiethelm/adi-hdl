@@ -13,6 +13,7 @@ adi_ip_create application_core
 # Corundum sources
 adi_ip_files application_core [list \
   "application_core.v" \
+  "application_tx.v" \
   "header_inserter.v" \
   "packetizer.v" \
   "application_regmap.v" \

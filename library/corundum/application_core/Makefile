@@ -9,6 +9,7 @@ LIBRARY_NAME := application_core
 XILINX_DEPS += application_core_ip.tcl
 
 GENERIC_DEPS += application_core.v
+GENERIC_DEPS += application_tx.v
 GENERIC_DEPS += header_inserter.v
 GENERIC_DEPS += packetizer.v
 GENERIC_DEPS += application_regmap.v
