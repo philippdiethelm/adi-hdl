@@ -19,6 +19,7 @@ Contents
    :maxdepth: 1
 
    AD-GMSL2ETH-SL <ad_gmsl2eth_sl/index>
+   AD-QUADMXFE1-EBZ <ad_quadmxfe1_ebz/index>
    AD353XR <ad353xr/index>
    AD35XXR-EVB <ad35xxr_evb/index>
    AD4052-ARDZ <ad4052_ardz/index>
@@ -60,12 +61,12 @@ Contents
    AD9783-EBZ <ad9783_ebz/index>
    ADAQ7980-SDZ <adaq7980_sdz/index>
    ADAQ8092-FMC <adaq8092_fmc/index>
-   ADRV9364Z7020 <adrv9364z7020/index>
-   ADRV9371x <adrv9371x/index>
    ADRV9009 <adrv9009/index>
+   ADRV9009-ZU11EG <adrv9009zu11eg/index>
    ADRV9026 <adrv9026/index>
    ADRV904x <adrv904x/index>
-   ADRV9009-ZU11EG <adrv9009zu11eg/index>
+   ADRV9364Z7020 <adrv9364z7020/index>
+   ADRV9371x <adrv9371x/index>
    ADV7511 <adv7511/index>
    ADV7513 <adv7513/index>
    CN0363 <cn0363/index>
@@ -77,10 +78,10 @@ Contents
    CN0585 <cn0585/index>
    DAC-FMC-EBZ <dac_fmc_ebz/index>
    DC2677A <dc2677a/index>
+   FMCOMMS11 <fmcomms11/index>
    FMCOMMS2/3/4 <fmcomms2/index>
    FMCOMMS5 <fmcomms5/index>
    FMCOMMS8 <fmcomms8/index>
-   FMCOMMS11 <fmcomms11/index>
    MAX96724 <max96724/index>
    PLUTO <pluto/index>
    PULSAR-ADC <pulsar_adc/index>
