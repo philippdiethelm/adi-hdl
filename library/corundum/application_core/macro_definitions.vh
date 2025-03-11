@@ -33,68 +33,13 @@
 // ***************************************************************************
 // ***************************************************************************
 
-`timescale 1ns/100ps
-
-module packetizer #(
-
-  parameter AXIS_DATA_WIDTH = 512,
-  parameter CHANNELS = 4
-) (
-
-  input  wire                         clk,
-  input  wire                         rstn,
-
-  // input
-  input  wire                         input_axis_tvalid,
-  input  wire                         input_axis_tready,
-
-  input  wire [CHANNELS-1:0]          input_enable,
-  input  wire [15:0]                  packet_size,
-  output reg                          packet_tlast
-);
-
-  reg  [15:0] sample_counter;
-  reg  [15:0] packet_size_dynamic;
-  wire [15:0] packet_size_dynamic_calc;
-
-  function [$clog2(CHANNELS):0] converters(input [CHANNELS-1:0] input_enable);
-    integer i;
-    begin
-      converters = 0;
-      for (i=0; i<CHANNELS; i=i+1) begin
-        converters = converters + input_enable[i];
-      end
-    end
+// hton implementation for dynamic byte range
+`define HTOND(length) \
+  function [length-1:0] htond_``length``(input [length-1:0] data_in); \
+    integer i; \
+    begin \
+      for (i=0; i<length/8; i=i+1) begin \
+        htond_``length``[i*8+:8] = data_in[(length/8-1-i)*8+:8]; \
+      end \
+    end \
   endfunction
-
-  assign packet_size_dynamic_calc = (packet_size/AXIS_DATA_WIDTH*8/(2**$clog2(CHANNELS)))*converters(input_enable);
-
-  always @(posedge clk)
-  begin
-    if (!rstn) begin
-      packet_size_dynamic <= packet_size;
-    end else begin
-      packet_size_dynamic <= packet_size_dynamic_calc;
-    end
-  end
-
-  always @(posedge clk)
-  begin
-    if (!rstn) begin
-      sample_counter <= 8'd0;
-      packet_tlast <= 1'b0;
-    end else begin
-      if (input_axis_tvalid && input_axis_tready) begin
-        if (sample_counter < packet_size_dynamic-1) begin
-          sample_counter <= sample_counter + 1;
-        end else begin
-          sample_counter <= 8'd0;
-          packet_tlast <= 1'b1;
-        end
-      end else begin
-        packet_tlast <= 1'b0;
-      end
-    end
-  end
-
-endmodule

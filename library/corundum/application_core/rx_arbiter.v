@@ -37,15 +37,17 @@
 
 `include "macro_definitions.vh"
 
-module header_inserter #(
+module rx_arbiter #(
 
   parameter AXIS_DATA_WIDTH = 512,
-  parameter INPUT_WIDTH = 2048,
   parameter CHANNELS = 4
 ) (
 
   input  wire                         clk,
   input  wire                         rstn,
+
+  input  wire                         start_app,
+  input  wire [15:0]                  packet_size,
 
   // Ethernet header
   input  wire [48-1:0]                ethernet_destination_MAC,
@@ -56,42 +58,32 @@ module header_inserter #(
   input  wire [4-1:0]                 ip_version,
   input  wire [4-1:0]                 ip_header_length,
   input  wire [8-1:0]                 ip_type_of_service,
-  output reg  [16-1:0]                ip_total_length,
   input  wire [16-1:0]                ip_identification,
   input  wire [3-1:0]                 ip_flags,
   input  wire [13-1:0]                ip_fragment_offset,
   input  wire [8-1:0]                 ip_time_to_live,
   input  wire [8-1:0]                 ip_protocol,
-  output reg  [16-1:0]                ip_header_checksum,
   input  wire [32-1:0]                ip_source_IP_address,
   input  wire [32-1:0]                ip_destination_IP_address,
 
   // UDP header
   input  wire [16-1:0]                udp_source,
   input  wire [16-1:0]                udp_destination,
-  output reg  [16-1:0]                udp_length,
   input  wire [16-1:0]                udp_checksum,
 
-  input  wire [CHANNELS-1:0]          input_enable,
-  input  wire [16-1:0]                packet_size,
-
-  // Control signals
-  input  wire                         run_packetizer,
-  input  wire                         packet_sent,
-
   // Input
+  input  wire                         input_clk,
+  input  wire                         input_rstn,
+
   input  wire                         input_axis_tvalid,
-  output wire                         input_axis_tready,
+  input  wire                         input_axis_tready,
   input  wire [AXIS_DATA_WIDTH-1:0]   input_axis_tdata,
+  input  wire [AXIS_DATA_WIDTH-1:0]   input_axis_tlast,
 
-  input  wire                         packet_tlast,
+  input  wire [CHANNELS-1:0]          output_enable,
 
-  // Output
-  input  wire                         output_axis_tready,
-  output reg                          output_axis_tvalid,
-  output reg  [AXIS_DATA_WIDTH-1:0]   output_axis_tdata,
-  output reg  [AXIS_DATA_WIDTH/8-1:0] output_axis_tkeep,
-  output reg                          output_axis_tlast
+  output reg                          valid,
+  output reg                          switch
 );
 
   function [$clog2(CHANNELS):0] converters(input [CHANNELS-1:0] input_enable);
@@ -110,7 +102,16 @@ module header_inserter #(
 
   localparam HEADER_LENGTH = 336;
 
-  wire [HEADER_LENGTH-1:0]     header;
+  wire [HEADER_LENGTH-1:0]     header_src_dst;
+  wire [HEADER_LENGTH-1:0]     header_length_checksum;
+
+  reg state;
+
+  reg  [CHANNELS-1:0] output_enable_old;
+  reg                 output_enable_ff;
+  wire                output_enable_ff_cdc;
+  reg                 output_enable_ff_cdc2;
+  reg  [CHANNELS-1:0] output_enable_cdc;
 
   reg [32-1:0]                 ip_header_checksum_reg0;
   reg [32-1:0]                 ip_header_checksum_reg1;
@@ -120,20 +121,50 @@ module header_inserter #(
   reg                          new_packet;
   reg                          tlast_sig;
 
-  // temporary storage
-  always @(posedge clk)
+  always @(posedge input_clk)
   begin
-    if (!rstn) begin
-      cdc_axis_tdata_reg <= {HEADER_LENGTH{1'b0}};
+    if (!input_rstn) begin
+      output_enable_ff <= 1'b0;
     end else begin
-      if (input_axis_tvalid && output_axis_tready) begin
-        cdc_axis_tdata_reg <= input_axis_tdata[AXIS_DATA_WIDTH-1:AXIS_DATA_WIDTH-HEADER_LENGTH];
+      output_enable_old <= output_enable;
+      if (output_enable_old != output_enable) begin
+        output_enable_ff <= ~output_enable_ff;
       end
     end
   end
 
-  // ready signal generation
-  assign input_axis_tready = ~packet_tlast && output_axis_tready;
+  sync_bits #(
+    .NUM_OF_BITS(1)
+  ) sync_bits_output_enable_ff (
+    .in_bits(output_enable_ff),
+    .out_resetn(rstn),
+    .out_clk(clk),
+    .out_bits(output_enable_ff_cdc)
+  );
+
+  always @(posedge clk)
+  begin
+    if (!rstn) begin
+      output_enable_ff_cdc2 <= 1'b0;
+    end else begin
+      output_enable_ff_cdc2 <= output_enable_ff_cdc;
+    end
+  end
+
+  always @(posedge clk)
+  begin
+    if (!rstn) begin
+      output_enable_cdc <= {CHANNELS{1'b0}};
+    end else begin
+      if (output_enable_ff_cdc2 ^ output_enable_ff_cdc) begin
+        output_enable_cdc <= output_enable;
+      end
+    end
+  end
+
+  reg  [16-1:0]                ip_total_length;
+  reg  [16-1:0]                ip_header_checksum;
+  reg  [16-1:0]                udp_length;
 
   // udp total length calculation
   always @(posedge clk)
@@ -141,7 +172,7 @@ module header_inserter #(
     if (!rstn) begin
       udp_length <= 16'd0;
     end else begin
-      udp_length <= 16'h8 + packet_size/(2**$clog2(CHANNELS))*converters(input_enable);
+      udp_length <= 16'h8 + packet_size/(2**$clog2(CHANNELS))*converters(output_enable_cdc);
     end
   end
 
@@ -169,10 +200,10 @@ module header_inserter #(
         {16'h0000, ip_identification} +
         {16'h0000, {ip_flags, ip_fragment_offset}} +
         {16'h0000, {ip_time_to_live, ip_protocol}} +
-        {16'h0000, ip_source_IP_address[31:16]} +
-        {16'h0000, ip_source_IP_address[15:0]} +
         {16'h0000, ip_destination_IP_address[31:16]} +
-        {16'h0000, ip_destination_IP_address[15:0]};
+        {16'h0000, ip_destination_IP_address[15:0]} +
+        {16'h0000, ip_source_IP_address[31:16]} +
+        {16'h0000, ip_source_IP_address[15:0]};
 
       ip_header_checksum_reg1 <= ip_header_checksum_reg0[31:16] + ip_header_checksum_reg0[15:0];
 
@@ -181,90 +212,84 @@ module header_inserter #(
   end
 
   // header concatenation
-  assign header = {
+  assign header_src_dst = {
+    htond_16(16'hxxxx),
+    htond_16(16'hxxxx),
+    htond_16(udp_source),
+    htond_16(udp_destination),
+    htond_32(ip_source_IP_address),
+    htond_32(ip_destination_IP_address),
+    htond_16(16'hxxxx),
+    htond_16(16'hxxxx),
+    htond_16(16'hxxxx),
+    htond_16(16'hxxxx),
+    htond_16(16'hxxxx),
+    htond_16(16'hxxxx),
+    htond_16(16'hxxxx),
+    htond_48(ethernet_destination_MAC),
+    htond_48(ethernet_source_MAC)};
+  assign header_length_checksum = {
     htond_16(udp_checksum),
     htond_16(udp_length),
-    htond_16(udp_destination),
-    htond_16(udp_source),
-    htond_32(ip_destination_IP_address),
-    htond_32(ip_source_IP_address),
+    htond_16(16'hxxxx),
+    htond_16(16'hxxxx),
+    htond_32(32'hxxxxxxxx),
+    htond_32(32'hxxxxxxxx),
     htond_16(ip_header_checksum),
-    htond_16({ip_time_to_live, ip_protocol}),
-    htond_16({ip_flags, ip_fragment_offset}),
-    htond_16(ip_identification),
+    htond_16(16'hxxxx),
+    htond_16(16'hxxxx),
+    htond_16(16'hxxxx),
     htond_16(ip_total_length),
-    htond_16({ip_version, ip_header_length, ip_type_of_service}),
-    htond_16(ethernet_type),
-    htond_48(ethernet_source_MAC),
-    htond_48(ethernet_destination_MAC)};
+    htond_16(16'hxxxx),
+    htond_16(16'hxxxx),
+    htond_48(48'hxxxxxxxxxxxx),
+    htond_48(48'hxxxxxxxxxxxx)};
+  // assign header = {
+  //   htond_16(udp_checksum),
+  //   htond_16(udp_length),
+  //   htond_16(udp_source),
+  //   htond_16(udp_destination),
+  //   htond_32(ip_source_IP_address),
+  //   htond_32(ip_destination_IP_address),
+  //   htond_16(ip_header_checksum),
+  //   htond_16({ip_time_to_live, ip_protocol}),
+  //   htond_16({ip_flags, ip_fragment_offset}),
+  //   htond_16(ip_identification),
+  //   htond_16(ip_total_length),
+  //   htond_16({ip_version, ip_header_length, ip_type_of_service}),
+  //   htond_16(ethernet_type),
+  //   htond_48(ethernet_destination_MAC),
+  //   htond_48(ethernet_source_MAC)};
 
-  // new packet marking
   always @(posedge clk)
   begin
     if (!rstn) begin
-      new_packet <= 1'b1;
+      state <= 1'b0;
     end else begin
-      if (output_axis_tready && run_packetizer) begin
-        if (packet_tlast) begin
-          new_packet <= 1'b1;
-        end else if (input_axis_tvalid) begin
-          new_packet <= 1'b0;
-        end
+      if (input_axis_tvalid && input_axis_tready && input_axis_tlast) begin
+        state <= 1'b0;
+      end else if (state == 1'b0 && input_axis_tvalid && input_axis_tready) begin
+        state <= 1'b1;
       end
     end
   end
 
-  integer j;
-  reg [HEADER_LENGTH-1:0] reg_part1;
-  reg [AXIS_DATA_WIDTH-1-HEADER_LENGTH:0] reg_part2;
-
-  // raw data to network byte order
-  always @(*)
-  begin
-    for (j=0; j<HEADER_LENGTH/16; j=j+1) begin
-      reg_part1[j*16+:16] = htond_16(cdc_axis_tdata_reg[j*16+:16]);
-    end
-    for (j=0; j<(AXIS_DATA_WIDTH-HEADER_LENGTH)/16; j=j+1) begin
-      reg_part2[j*16+:16] = htond_16(input_axis_tdata[j*16+:16]);
-    end
-  end
-
-  // header insertion
   always @(posedge clk)
   begin
     if (!rstn) begin
-      output_axis_tvalid <= 1'b0;
-      output_axis_tdata <= {AXIS_DATA_WIDTH-1{1'b0}};
-      output_axis_tkeep <= {AXIS_DATA_WIDTH/8-1{1'b0}};
-      output_axis_tlast <= 1'b0;
+      switch <= 1'b0;
+      valid <= 1'b0;
     end else begin
-      if (output_axis_tready && run_packetizer) begin
-        // valid
-        if (input_axis_tvalid || packet_tlast) begin
-          output_axis_tvalid <= 1'b1;
-        end else begin
-          output_axis_tvalid <= 1'b0;
-        end
-        // data, keep and last
-        if (input_axis_tvalid && input_axis_tready) begin
-          if (new_packet) begin
-            output_axis_tdata <= {reg_part2, header};
-            output_axis_tkeep <= {AXIS_DATA_WIDTH/8{1'b1}};
-            output_axis_tlast <= 1'b0;
+      if (state == 1'b0 && input_axis_tvalid && input_axis_tready) begin
+        if (start_app && header_src_dst == input_axis_tdata[HEADER_LENGTH-1:0]) begin
+          switch <= 1'b1;
+          if (start_app && header_length_checksum == input_axis_tdata[HEADER_LENGTH-1:0]) begin
+            valid <= 1'b1;
           end else begin
-            output_axis_tdata <= {reg_part2, reg_part1};
-            output_axis_tkeep <= {AXIS_DATA_WIDTH/8{1'b1}};
-            output_axis_tlast <= 1'b0;
+            valid <= 1'b0;
           end
-        end else if (packet_tlast) begin
-          output_axis_tdata <= {{AXIS_DATA_WIDTH-HEADER_LENGTH{1'b0}}, reg_part1};
-          output_axis_tkeep <= {{(AXIS_DATA_WIDTH-HEADER_LENGTH)/8{1'b0}}, {HEADER_LENGTH/8{1'b1}}};
-          output_axis_tlast <= 1'b1;
-        end
-      end else begin
-        // stop
-        if (!run_packetizer && packet_sent) begin
-          output_axis_tvalid <= 1'b0;
+        end else begin
+          switch <= 1'b0;
         end
       end
     end

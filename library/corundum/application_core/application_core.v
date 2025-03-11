@@ -116,7 +116,11 @@ module application_core #
 
   // Input stream
   parameter INPUT_WIDTH = 2048,
-  parameter CHANNELS = 4
+  parameter INPUT_CHANNELS = 4,
+
+  // Output stream
+  parameter OUTPUT_WIDTH = 2048,
+  parameter OUTPUT_CHANNELS = 4
 )
 (
   input  wire                                           clk,
@@ -527,7 +531,17 @@ module application_core #
   input  wire                                           input_axis_tvalid,
   output wire                                           input_axis_tready,
 
-  input  wire [CHANNELS-1:0]                            input_enable
+  input  wire [INPUT_CHANNELS-1:0]                      input_enable,
+
+  // Output data
+  input  wire                                           output_clk,
+  input  wire                                           output_rstn,
+
+  output wire [OUTPUT_WIDTH-1:0]                        output_axis_tdata,
+  output wire                                           output_axis_tvalid,
+  input  wire                                           output_axis_tready,
+
+  input  wire [OUTPUT_CHANNELS-1:0]                     output_enable
 );
 
   // check configuration
@@ -579,11 +593,11 @@ module application_core #
   application_tx #(
     .IF_COUNT(IF_COUNT),
     .PORTS_PER_IF(PORTS_PER_IF),
-    .AXIS_SYNC_DATA_WIDTH(AXIS_SYNC_DATA_WIDTH),
-    .AXIS_SYNC_KEEP_WIDTH(AXIS_SYNC_KEEP_WIDTH),
-    .AXIS_SYNC_TX_USER_WIDTH(AXIS_SYNC_TX_USER_WIDTH),
+    .AXIS_DATA_WIDTH(AXIS_SYNC_DATA_WIDTH),
+    .AXIS_KEEP_WIDTH(AXIS_SYNC_KEEP_WIDTH),
+    .AXIS_TX_USER_WIDTH(AXIS_SYNC_TX_USER_WIDTH),
     .INPUT_WIDTH(INPUT_WIDTH),
-    .CHANNELS(CHANNELS)
+    .CHANNELS(INPUT_CHANNELS)
   ) application_tx_inst (
     .clk(clk),
     .rstn(rstn),
@@ -627,6 +641,56 @@ module application_core #
     .udp_source(udp_source),
     .udp_destination(udp_destination),
     .udp_length(udp_length),
+    .udp_checksum(udp_checksum));
+
+  application_rx #(
+    .IF_COUNT(IF_COUNT),
+    .PORTS_PER_IF(PORTS_PER_IF),
+    .AXIS_DATA_WIDTH(AXIS_SYNC_DATA_WIDTH),
+    .AXIS_KEEP_WIDTH(AXIS_SYNC_KEEP_WIDTH),
+    .AXIS_RX_USER_WIDTH(AXIS_SYNC_RX_USER_WIDTH),
+    .OUTPUT_WIDTH(OUTPUT_WIDTH),
+    .CHANNELS(OUTPUT_CHANNELS)
+  ) application_rx_inst (
+    .clk(clk),
+    .rstn(rstn),
+    .s_axis_sync_rx_tdata(s_axis_sync_rx_tdata),
+    .s_axis_sync_rx_tkeep(s_axis_sync_rx_tkeep),
+    .s_axis_sync_rx_tvalid(s_axis_sync_rx_tvalid),
+    .s_axis_sync_rx_tready(s_axis_sync_rx_tready),
+    .s_axis_sync_rx_tlast(s_axis_sync_rx_tlast),
+    .s_axis_sync_rx_tuser(s_axis_sync_rx_tuser),
+    .m_axis_sync_rx_tdata(m_axis_sync_rx_tdata),
+    .m_axis_sync_rx_tkeep(m_axis_sync_rx_tkeep),
+    .m_axis_sync_rx_tvalid(m_axis_sync_rx_tvalid),
+    .m_axis_sync_rx_tready(m_axis_sync_rx_tready),
+    .m_axis_sync_rx_tlast(m_axis_sync_rx_tlast),
+    .m_axis_sync_rx_tuser(m_axis_sync_rx_tuser),
+
+    .output_clk(output_clk),
+    .output_rstn(output_rstn),
+    .output_axis_tdata(output_axis_tdata),
+    .output_axis_tvalid(output_axis_tvalid),
+    .output_axis_tready(output_axis_tready),
+    .output_enable(output_enable),
+
+    .start_app(start_app),
+    .packet_size(packet_size),
+    .ethernet_destination_MAC(ethernet_destination_MAC),
+    .ethernet_source_MAC(ethernet_source_MAC),
+    .ethernet_type(ethernet_type),
+    .ip_version(ip_version),
+    .ip_header_length(ip_header_length),
+    .ip_type_of_service(ip_type_of_service),
+    .ip_identification(ip_identification),
+    .ip_flags(ip_flags),
+    .ip_fragment_offset(ip_fragment_offset),
+    .ip_time_to_live(ip_time_to_live),
+    .ip_protocol(ip_protocol),
+    .ip_source_IP_address(ip_source_IP_address),
+    .ip_destination_IP_address(ip_destination_IP_address),
+    .udp_source(udp_source),
+    .udp_destination(udp_destination),
     .udp_checksum(udp_checksum));
 
   ////----------------------------------------AXI Interface-----------------//
@@ -792,17 +856,11 @@ module application_core #
   assign m_axis_direct_rx_tlast = s_axis_direct_rx_tlast;
   assign m_axis_direct_rx_tuser = s_axis_direct_rx_tuser;
 
+  // Ethernet (synchronous MAC interface - low latency raw traffic)
   assign m_axis_sync_tx_cpl_ts = s_axis_sync_tx_cpl_ts;
   assign m_axis_sync_tx_cpl_tag = s_axis_sync_tx_cpl_tag;
   assign m_axis_sync_tx_cpl_valid = s_axis_sync_tx_cpl_valid;
   assign s_axis_sync_tx_cpl_ready = m_axis_sync_tx_cpl_ready;
-
-  assign m_axis_sync_rx_tdata = s_axis_sync_rx_tdata;
-  assign m_axis_sync_rx_tkeep = s_axis_sync_rx_tkeep;
-  assign m_axis_sync_rx_tvalid = s_axis_sync_rx_tvalid;
-  assign s_axis_sync_rx_tready = m_axis_sync_rx_tready;
-  assign m_axis_sync_rx_tlast = s_axis_sync_rx_tlast;
-  assign m_axis_sync_rx_tuser = s_axis_sync_rx_tuser;
 
   // Ethernet (internal at interface module)
   assign m_axis_if_tx_tdata = s_axis_if_tx_tdata;

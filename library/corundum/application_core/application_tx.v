@@ -42,9 +42,9 @@ module application_tx #(
   parameter PORTS_PER_IF = 1,
 
   // Ethernet interface configuration (direct, sync)
-  parameter AXIS_SYNC_DATA_WIDTH = 512,
-  parameter AXIS_SYNC_KEEP_WIDTH = AXIS_SYNC_DATA_WIDTH/8,
-  parameter AXIS_SYNC_TX_USER_WIDTH = 17,
+  parameter AXIS_DATA_WIDTH = 512,
+  parameter AXIS_KEEP_WIDTH = AXIS_DATA_WIDTH/8,
+  parameter AXIS_TX_USER_WIDTH = 17,
 
   // Input stream
   parameter INPUT_WIDTH = 2048,
@@ -55,19 +55,19 @@ module application_tx #(
   input  wire                            rstn,
 
   // Ethernet (synchronous MAC interface - low latency raw traffic)
-  input  wire [IF_COUNT*PORTS_PER_IF*AXIS_SYNC_DATA_WIDTH-1:0]     s_axis_sync_tx_tdata,
-  input  wire [IF_COUNT*PORTS_PER_IF*AXIS_SYNC_KEEP_WIDTH-1:0]     s_axis_sync_tx_tkeep,
-  input  wire [IF_COUNT*PORTS_PER_IF-1:0]                          s_axis_sync_tx_tvalid,
-  output wire [IF_COUNT*PORTS_PER_IF-1:0]                          s_axis_sync_tx_tready,
-  input  wire [IF_COUNT*PORTS_PER_IF-1:0]                          s_axis_sync_tx_tlast,
-  input  wire [IF_COUNT*PORTS_PER_IF*AXIS_SYNC_TX_USER_WIDTH-1:0]  s_axis_sync_tx_tuser,
+  input  wire [IF_COUNT*PORTS_PER_IF*AXIS_DATA_WIDTH-1:0]     s_axis_sync_tx_tdata,
+  input  wire [IF_COUNT*PORTS_PER_IF*AXIS_KEEP_WIDTH-1:0]     s_axis_sync_tx_tkeep,
+  input  wire [IF_COUNT*PORTS_PER_IF-1:0]                     s_axis_sync_tx_tvalid,
+  output wire [IF_COUNT*PORTS_PER_IF-1:0]                     s_axis_sync_tx_tready,
+  input  wire [IF_COUNT*PORTS_PER_IF-1:0]                     s_axis_sync_tx_tlast,
+  input  wire [IF_COUNT*PORTS_PER_IF*AXIS_TX_USER_WIDTH-1:0]  s_axis_sync_tx_tuser,
 
-  output reg  [IF_COUNT*PORTS_PER_IF*AXIS_SYNC_DATA_WIDTH-1:0]     m_axis_sync_tx_tdata,
-  output reg  [IF_COUNT*PORTS_PER_IF*AXIS_SYNC_KEEP_WIDTH-1:0]     m_axis_sync_tx_tkeep,
-  output reg  [IF_COUNT*PORTS_PER_IF-1:0]                          m_axis_sync_tx_tvalid,
-  input  wire [IF_COUNT*PORTS_PER_IF-1:0]                          m_axis_sync_tx_tready,
-  output reg  [IF_COUNT*PORTS_PER_IF-1:0]                          m_axis_sync_tx_tlast,
-  output reg  [IF_COUNT*PORTS_PER_IF*AXIS_SYNC_TX_USER_WIDTH-1:0]  m_axis_sync_tx_tuser,
+  output reg  [IF_COUNT*PORTS_PER_IF*AXIS_DATA_WIDTH-1:0]     m_axis_sync_tx_tdata,
+  output reg  [IF_COUNT*PORTS_PER_IF*AXIS_KEEP_WIDTH-1:0]     m_axis_sync_tx_tkeep,
+  output reg  [IF_COUNT*PORTS_PER_IF-1:0]                     m_axis_sync_tx_tvalid,
+  input  wire [IF_COUNT*PORTS_PER_IF-1:0]                     m_axis_sync_tx_tready,
+  output reg  [IF_COUNT*PORTS_PER_IF-1:0]                     m_axis_sync_tx_tlast,
+  output reg  [IF_COUNT*PORTS_PER_IF*AXIS_TX_USER_WIDTH-1:0]  m_axis_sync_tx_tuser,
 
   // Input data
   input  wire                            input_clk,
@@ -182,15 +182,15 @@ module application_tx #(
   ////----------------------------------------Buffer, CDC and Scaling FIFO----//
   //////////////////////////////////////////////////
 
-  wire                            cdc_axis_tvalid;
-  wire                            cdc_axis_tready;
-  wire [AXIS_SYNC_DATA_WIDTH-1:0] cdc_axis_tdata;
+  wire                       cdc_axis_tvalid;
+  wire                       cdc_axis_tready;
+  wire [AXIS_DATA_WIDTH-1:0] cdc_axis_tdata;
 
   util_axis_fifo_asym #(
     .ASYNC_CLK(1),
     .S_DATA_WIDTH(INPUT_WIDTH),
     .ADDRESS_WIDTH($clog2(8192/INPUT_WIDTH)+1),
-    .M_DATA_WIDTH(AXIS_SYNC_DATA_WIDTH),
+    .M_DATA_WIDTH(AXIS_DATA_WIDTH),
     .M_AXIS_REGISTERED(1),
     .ALMOST_EMPTY_THRESHOLD(0),
     .ALMOST_FULL_THRESHOLD(0),
@@ -224,42 +224,86 @@ module application_tx #(
   ////----------------------------------------Packetizer--------------------//
   //////////////////////////////////////////////////
 
+    reg  [CHANNELS-1:0] input_enable_old;
+    reg                 input_enable_ff;
+    wire                input_enable_ff_cdc;
+    reg                 input_enable_ff_cdc2;
+    reg  [CHANNELS-1:0] input_enable_cdc;
+
+    always @(posedge input_clk)
+    begin
+      if (!input_rstn) begin
+        input_enable_ff <= 1'b0;
+      end else begin
+        input_enable_old <= input_enable;
+        if (input_enable_old != input_enable) begin
+          input_enable_ff <= ~input_enable_ff;
+        end
+      end
+    end
+
+    sync_bits #(
+      .NUM_OF_BITS(1)
+    ) sync_bits_input_enable_ff (
+      .in_bits(input_enable_ff),
+      .out_resetn(rstn),
+      .out_clk(clk),
+      .out_bits(input_enable_ff_cdc)
+    );
+
+    always @(posedge clk)
+    begin
+      if (!rstn) begin
+        input_enable_ff_cdc2 <= 1'b0;
+      end else begin
+        input_enable_ff_cdc2 <= input_enable_ff_cdc;
+      end
+    end
+
+    always @(posedge clk)
+    begin
+      if (!rstn) begin
+        input_enable_cdc <= {CHANNELS{1'b0}};
+      end else begin
+        if (input_enable_ff_cdc2 ^ input_enable_ff_cdc) begin
+          input_enable_cdc <= input_enable;
+        end
+      end
+    end
+
   packetizer #(
-    .AXIS_DATA_WIDTH(AXIS_SYNC_DATA_WIDTH),
+    .AXIS_DATA_WIDTH(AXIS_DATA_WIDTH),
     .CHANNELS(CHANNELS)
   ) packetizer_inst (
     .clk(clk),
     .rstn(rstn),
-    .input_clk(input_clk),
-    .input_rstn(input_rstn),
     .input_axis_tvalid(cdc_axis_tvalid),
     .input_axis_tready(cdc_axis_tready),
-    .input_enable(input_enable),
+    .input_enable(input_enable_cdc),
     .packet_size(packet_size),
-    .packet_tlast(packet_tlast)
-  );
+    .packet_tlast(packet_tlast));
 
   ////----------------------------------------Header Inserter---------------//
   //////////////////////////////////////////////////
 
-  wire                              packet_axis_tvalid;
-  wire                              packet_axis_tready;
-  wire [AXIS_SYNC_DATA_WIDTH-1:0]   packet_axis_tdata;
-  wire [AXIS_SYNC_DATA_WIDTH/8-1:0] packet_axis_tkeep;
-  wire                              packet_axis_tlast;
+  wire                         packet_axis_tvalid;
+  wire                         packet_axis_tready;
+  wire [AXIS_DATA_WIDTH-1:0]   packet_axis_tdata;
+  wire [AXIS_DATA_WIDTH/8-1:0] packet_axis_tkeep;
+  wire                         packet_axis_tlast;
 
-  reg                               packet_buffer_axis_tready;
-  wire                              packet_buffer_axis_tvalid;
-  wire [AXIS_SYNC_DATA_WIDTH-1:0]   packet_buffer_axis_tdata;
-  wire                              packet_buffer_axis_tlast;
-  wire [AXIS_SYNC_DATA_WIDTH/8-1:0] packet_buffer_axis_tkeep;
+  reg                          packet_buffer_axis_tready;
+  wire                         packet_buffer_axis_tvalid;
+  wire [AXIS_DATA_WIDTH-1:0]   packet_buffer_axis_tdata;
+  wire                         packet_buffer_axis_tlast;
+  wire [AXIS_DATA_WIDTH/8-1:0] packet_buffer_axis_tkeep;
 
   wire packet_sent;
 
   assign packet_sent = packet_buffer_axis_tready && packet_buffer_axis_tvalid && packet_buffer_axis_tlast;
 
   header_inserter #(
-    .AXIS_DATA_WIDTH(AXIS_SYNC_DATA_WIDTH),
+    .AXIS_DATA_WIDTH(AXIS_DATA_WIDTH),
     .INPUT_WIDTH(INPUT_WIDTH)
   ) header_inserter_inst (
     .clk(clk),
@@ -283,6 +327,7 @@ module application_tx #(
     .udp_destination(udp_destination),
     .udp_length(udp_length),
     .udp_checksum(udp_checksum),
+    .input_enable(input_enable),
     .packet_size(packet_size),
     .run_packetizer(run_packetizer),
     .packet_sent(packet_sent),
@@ -307,12 +352,12 @@ module application_tx #(
   assign packet_fifo_rstn = rstn && !(!run_packetizer && packet_buffer_axis_tready && packet_buffer_axis_tvalid && packet_buffer_axis_tlast);
 
   util_axis_fifo #(
-    .DATA_WIDTH(AXIS_SYNC_DATA_WIDTH),
-    .ADDRESS_WIDTH($clog2(8192/AXIS_SYNC_DATA_WIDTH)+1),
+    .DATA_WIDTH(AXIS_DATA_WIDTH),
+    .ADDRESS_WIDTH($clog2(8192/AXIS_DATA_WIDTH)+1),
     .ASYNC_CLK(0),
     .M_AXIS_REGISTERED(1),
-    .ALMOST_EMPTY_THRESHOLD(8192/AXIS_SYNC_DATA_WIDTH),
-    .ALMOST_FULL_THRESHOLD(8192/AXIS_SYNC_DATA_WIDTH),
+    .ALMOST_EMPTY_THRESHOLD(8192/AXIS_DATA_WIDTH),
+    .ALMOST_FULL_THRESHOLD(8192/AXIS_DATA_WIDTH),
     .TLAST_EN(1),
     .TKEEP_EN(1),
     .REMOVE_NULL_BEAT_EN(0)
@@ -342,16 +387,16 @@ module application_tx #(
   ////----------------------------------------OS Buffer FIFO----------------------//
   //////////////////////////////////////////////////
 
-  reg                                os_buffer_axis_tready;
-  wire                               os_buffer_axis_tvalid;
-  wire [AXIS_SYNC_DATA_WIDTH-1:0]    os_buffer_axis_tdata;
-  wire                               os_buffer_axis_tlast;
-  wire [AXIS_SYNC_DATA_WIDTH/8-1:0]  os_buffer_axis_tkeep;
-  wire [AXIS_SYNC_TX_USER_WIDTH-1:0] os_buffer_axis_tuser;
+  reg                           os_buffer_axis_tready;
+  wire                          os_buffer_axis_tvalid;
+  wire [AXIS_DATA_WIDTH-1:0]    os_buffer_axis_tdata;
+  wire                          os_buffer_axis_tlast;
+  wire [AXIS_DATA_WIDTH/8-1:0]  os_buffer_axis_tkeep;
+  wire [AXIS_TX_USER_WIDTH-1:0] os_buffer_axis_tuser;
 
   util_axis_fifo #(
-    .DATA_WIDTH(AXIS_SYNC_DATA_WIDTH/8*9 + AXIS_SYNC_TX_USER_WIDTH),
-    .ADDRESS_WIDTH($clog2(12288/AXIS_SYNC_DATA_WIDTH)+1),
+    .DATA_WIDTH(AXIS_DATA_WIDTH/8*9 + AXIS_TX_USER_WIDTH),
+    .ADDRESS_WIDTH($clog2(12288/AXIS_DATA_WIDTH)+1),
     .ASYNC_CLK(0),
     .M_AXIS_REGISTERED(1),
     .ALMOST_EMPTY_THRESHOLD(),
@@ -382,7 +427,7 @@ module application_tx #(
     .s_axis_full(),
     .s_axis_almost_full());
 
-  // Ethernet (synchronous MAC interface - low latency raw traffic)
+  // Datapath switch
   reg datapath_switch; // 0 - OS
                        // 1 - Packet
 
