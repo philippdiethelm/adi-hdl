@@ -93,4 +93,8 @@ set_property -dict {PACKAGE_PIN AE4  IOSTANDARD LVCMOS18} [get_ports spi_mosi]  
 # clocks
 
 create_clock -name ref_clk   -period  4.00 [get_ports ref_clk_p]
-create_clock -name core_clk  -period  4.00 [get_ports core_clk_p]
+create_clock -name core_clk  -period  8.00 [get_ports core_clk_p]
+
+create_generated_clock -name tx_div_clk     [get_pins i_system_wrapper/system_i/util_adrv9026_xcvr/inst/i_xch_0/i_gthe4_channel/TXOUTCLK]
+create_generated_clock -name rx_div_clk     [get_pins i_system_wrapper/system_i/util_adrv9026_xcvr/inst/i_xch_0/i_gthe4_channel/RXOUTCLK]
+create_generated_clock -name rx_os_div_clk  [get_pins i_system_wrapper/system_i/util_adrv9026_xcvr/inst/i_xch_2/i_gthe4_channel/RXOUTCLK]
