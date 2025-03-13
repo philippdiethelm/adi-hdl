@@ -340,21 +340,17 @@ proc adi_project_files {project_name project_files} {
   set_property top system_top [current_fileset]
 }
 
-
-#Function to execute a `make` command for a project within another project.
+## Function to execute a `make` command for a project within another project.
 #
 # \param[project_name] - project name for which you want to run make
 # \param[parameters_for_make] - parameters for the make command
-#array set ad_project_make_params {}
-
+#
 proc adi_project_make {project_name parameters_for_make} {
+
   global ad_hdl_dir 
-  #ad_project_make_params
 
   set current_dir [pwd]
-
   set carrier_name [file tail $current_dir]
-  puts "carrier name in make: $carrier_name"
 
   switch $carrier_name {
     "zc706" {
@@ -386,48 +382,32 @@ proc adi_project_make {project_name parameters_for_make} {
       return 1
     }
   }
-
-      # "xcvu095" {
-    #   set xcvr_type GTYE3
-    # } #nu am gasit nicio corespondenta cu vreun carrier
-
-  puts "xcvr type in make: $xcvr_type"
-
-  set adi_project_dir_path [file join $ad_hdl_dir/projects $project_name $carrier_name] 
+ 
   set parameters_dir_name {}
   set make_command "make"
-
-  puts "current dir cand se executa adi proj make: $current_dir"
-  puts " path-ul proj pt make: $adi_project_dir_path" 
-
+  set adi_project_dir_path [file join $ad_hdl_dir/projects $project_name $carrier_name]
   cd $adi_project_dir_path
 
   if {[llength $parameters_for_make] > 0} {
-    set formatted_params {}
-    foreach {key value} $parameters_for_make {
-        lappend formatted_params "$key=$value"
-        #set ad_project_make_params($key) $value
-        #puts "adi proj make params  $key : $ad_project_make_params($key)"
 
+    set formatted_params {}
+
+    foreach {key value} $parameters_for_make {
+
+        lappend formatted_params "$key=$value"
         set key_parsed [string map {"LANE_" "" "_" ""} $key]
-        puts "value : $value"
         set value_parrsed [string map {. _} $value]
-        puts " value parsed: $value_parrsed"
         set ad_project_make_params($key) $value_parrsed
         lappend parameters_dir_name "${key_parsed}${value_parrsed}"
-
     }
+
     append make_command " " [join $formatted_params " "]
     set parameters_dir_name [join  $parameters_dir_name "_"]
-    # append make_command " " [join $parameters_for_make " 
-
     set config_parser_dir_name "${xcvr_type}_${ad_project_make_params(PLL_TYPE)}_${ad_project_make_params(LANE_RATE)}_${ad_project_make_params(REF_CLK)}"
     set file_local_param [string tolower $config_parser_dir_name]
     append file_local_param "_common.v"
-    puts "file local param: $file_local_param"
   }
 
-  puts "comanda: $make_command"
   eval exec $make_command
   cd $current_dir
 
@@ -439,11 +419,8 @@ proc adi_project_make {project_name parameters_for_make} {
     set file_local_param_path [file join $config_dir_path $config_parser_dir_name $file_local_param]
   }
   
-  puts "path local: $file_local_param_path"
   return [dict create "cfng_file_path" $adi_project_dir_path "param_file_path" $file_local_param_path]
-  #return $adi_project_dir_path
 }
-
 
 ## Run an existing project (generate bit stream).
 #

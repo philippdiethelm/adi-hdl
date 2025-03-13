@@ -12,6 +12,36 @@ source $ad_hdl_dir/projects/scripts/adi_board.tcl
 #
 #   Use over-writable parameters from the environment.
 #
+#    e.g.
+#      make RX_JESD_L=4 RX_JESD_M=2 TX_JESD_L=4 TX_JESD_M=2 
+
+# Parameter description:
+#   project_name: Name of the project you want to build
+#   LANE_RATE: Value of lane rate [gbps]
+#   REF_CLK: Value of the reference clock [MHz] (usually LANE_RATE/20 or LANE_RATE/40)
+#   PLL_TYPE: The PLL used for driving the link [CPLL/QPLL0/QPLL1]
+#
+#   e.g. call for make with parameters
+#     adi_project_make project_name [list \
+#       LANE_RATE=10  \
+#       REF_CLK=500   \
+#       PLL_TYPE=QPLL0\
+#     ]
+#   
+#   e.g call for make without parameters
+#     adi_project_make project_name {}
+#
+# The function returns a dictionary with the paths to the `cfng` file
+# containing the modified parameters and to the `_common.v` file for extracting the value of the `QPLL_FBDIV_TOP` parameter for GTXE2.
+
+global FILE_PATHS
+
+set FILE_PATHS [adi_project_make xcvr_wizard [list \
+  LANE_RATE [get_env_param LANE_RATE  9.83] \
+  REF_CLK   [get_env_param REF_CLK  245.75] \
+  PLL_TYPE  [get_env_param PLL_TYPE  QPLL0] \
+]]
+
 # Parameter description:
 #   [TX/RX/RX_OS]_JESD_M : Number of converters per link
 #   [TX/RX/RX_OS]_JESD_L : Number of lanes per link
@@ -41,3 +71,4 @@ adi_project_files adrv9026_vcu118 [list \
 ## To improve timing of the BRAM buffers
 
 adi_project_run adrv9026_vcu118
+

@@ -29,14 +29,11 @@ DAC_FIFO_ADDR_WIDTH=$dac_fifo_address_width"
 sysid_gen_sys_init_file $sys_cstring
 
 # configure the CPLL's to support 12.33Gbps
-ad_ip_parameter util_daq3_xcvr CONFIG.CPLL_CFG0 0x03fe
-ad_ip_parameter util_daq3_xcvr CONFIG.CPLL_CFG1 0x0021
-ad_ip_parameter util_daq3_xcvr CONFIG.CPLL_CFG2 0x0203
+# ad_ip_parameter util_daq3_xcvr CONFIG.CPLL_CFG0 0x03fe
+# ad_ip_parameter util_daq3_xcvr CONFIG.CPLL_CFG1 0x0021
+# ad_ip_parameter util_daq3_xcvr CONFIG.CPLL_CFG2 0x0203
 
 create_bd_port -dir I dac_fifo_bypass
-
-ad_ip_parameter util_daq3_xcvr CONFIG.QPLL_FBDIV 20
-ad_ip_parameter util_daq3_xcvr CONFIG.QPLL_REFCLK_DIV 1
 
 ad_ip_parameter axi_ad9152_dma CONFIG.FIFO_SIZE 32
 ad_ip_parameter axi_ad9152_dma CONFIG.AXI_SLICE_SRC 1

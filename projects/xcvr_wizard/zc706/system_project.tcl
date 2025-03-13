@@ -10,7 +10,7 @@ source $ad_hdl_dir/projects/scripts/adi_board.tcl
 # Parameter description:
 # LANE_RATE: Value of lane rate [gbps]
 # REF_CLK: Value of the reference clock [MHz] (usually LANE_RATE/20 or LANE_RATE/40)
-# PLL_TYPE: The PLL used for driving the link [CPLL/QPLL0/QPLL1]
+# PLL_TYPE: The PLL used for driving the link [CPLL/QPLL]
 
 adi_project xcvr_wizard_zc706 0 [list \
   LANE_RATE   [get_env_param LANE_RATE        10 ] \
