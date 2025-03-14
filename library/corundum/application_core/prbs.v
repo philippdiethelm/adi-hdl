@@ -33,43 +33,9 @@
 // ***************************************************************************
 // ***************************************************************************
 
+// Uses Ficonacci style LFSR
+
 `timescale 1ns/100ps
-
-module top  #(
-
-  parameter DATA_WIDTH = 32,
-  parameter POLYNOMIAL_WIDTH = 31
-) (
-
-  input  wire [DATA_WIDTH-1:0] input_data,
-  output wire [DATA_WIDTH-1:0] output_data1,
-  output wire [DATA_WIDTH-1:0] output_data2,
-
-  input  wire [POLYNOMIAL_WIDTH-1:0] polynomial,
-  input  wire                        inverted
-);
-
-  prbs #(
-    .DATA_WIDTH(DATA_WIDTH),
-    .POLYNOMIAL_WIDTH(31)
-  ) prbs1_inst (
-    .input_data(input_data),
-    .output_data(output_data1),
-    .polynomial(polynomial),
-    .inverted(inverted)
-  );
-
-  prbs #(
-    .DATA_WIDTH(DATA_WIDTH),
-    .POLYNOMIAL_WIDTH(31)
-  ) prbs2_inst (
-    .input_data(input_data),
-    .output_data(output_data2),
-    .polynomial('h48000000),
-    .inverted(1'b1)
-  );
-
-endmodule
 
 module prbs #(
 
@@ -95,13 +61,7 @@ module prbs #(
    * 'h48000000 // PRBS31
    */
 
-  // check configuration
-  initial begin
-    if (DATA_WIDTH < POLYNOMIAL_WIDTH) begin
-      $error("Data width must be equal to or larger than polynomial width!");
-      $finish;
-    end
-  end
+  localparam MAX_WIDTH = (DATA_WIDTH > POLYNOMIAL_WIDTH) ? DATA_WIDTH : POLYNOMIAL_WIDTH;
 
   reg [DATA_WIDTH*POLYNOMIAL_WIDTH-1:0] internal_data;
 
@@ -109,17 +69,17 @@ module prbs #(
 
   always @(*)
   begin
-    internal_data[POLYNOMIAL_WIDTH-1:0] = {input_data[POLYNOMIAL_WIDTH-2:0], ^(polynomial & input_data[POLYNOMIAL_WIDTH-1:0]) ^ inverted};
+    internal_data[POLYNOMIAL_WIDTH-1:0] = {{MAX_WIDTH-DATA_WIDTH{1'b0}}, input_data};
 
     for (i = 1; i < DATA_WIDTH; i = i + 1) begin
-      internal_data[POLYNOMIAL_WIDTH*i +: POLYNOMIAL_WIDTH] = {internal_data[POLYNOMIAL_WIDTH*(i-1) +: POLYNOMIAL_WIDTH-1], ^(polynomial & internal_data[POLYNOMIAL_WIDTH*(i-1)+:POLYNOMIAL_WIDTH]) ^ inverted};
+      internal_data[POLYNOMIAL_WIDTH*i +: POLYNOMIAL_WIDTH] = {internal_data[POLYNOMIAL_WIDTH*(i-1) +: POLYNOMIAL_WIDTH-1], ^(polynomial & internal_data[POLYNOMIAL_WIDTH*(i-1) +: POLYNOMIAL_WIDTH]) ^ inverted};
     end
   end
 
   always @(*)
   begin
     for (i = 0; i < DATA_WIDTH; i = i + 1) begin
-      output_data[i] = internal_data[(DATA_WIDTH-1-i)*POLYNOMIAL_WIDTH];
+      output_data[i] = internal_data[(DATA_WIDTH-i)*POLYNOMIAL_WIDTH-1];
     end
   end
 
