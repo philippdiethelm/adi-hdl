@@ -31,12 +31,6 @@ create_bd_pin -dir I -type rst rst_125mhz
 
 create_bd_pin -dir O -type intr irq
 
-create_bd_pin -dir I input_axis_tvalid
-create_bd_pin -dir O input_axis_tready
-create_bd_pin -dir I -from [expr {$INPUT_WIDTH-1}] -to 0 input_axis_tdata
-
-create_bd_pin -dir I -from [expr {$CHANNELS-1}] -to 0 input_enable
-
 ad_ip_instance corundum_core corundum_core [list \
   FPGA_ID $FPGA_ID \
   FW_ID $FW_ID \
@@ -341,8 +335,33 @@ if {$APP_ENABLE == 1} {
     STAT_INC_WIDTH $STAT_INC_WIDTH \
     STAT_ID_WIDTH $STAT_ID_WIDTH \
     INPUT_WIDTH $INPUT_WIDTH \
-    CHANNELS $CHANNELS \
+    INPUT_CHANNELS $INPUT_CHANNELS \
+    OUTPUT_WIDTH $OUTPUT_WIDTH \
+    OUTPUT_CHANNELS $OUTPUT_CHANNELS \
   ]
+
+  create_bd_pin -dir I -type clk input_clk
+  create_bd_pin -dir I -type rst input_rstn
+
+  create_bd_pin -dir I -type clk output_clk
+  create_bd_pin -dir I -type rst output_rstn
+
+  create_bd_pin -dir I input_axis_tvalid
+  create_bd_pin -dir O input_axis_tready
+  create_bd_pin -dir I -from [expr {$INPUT_WIDTH-1}] -to 0 input_axis_tdata
+
+  create_bd_pin -dir O output_axis_tvalid
+  create_bd_pin -dir I output_axis_tready
+  create_bd_pin -dir O -from [expr {$OUTPUT_WIDTH-1}] -to 0 output_axis_tdata
+
+  create_bd_pin -dir I -from [expr {$INPUT_CHANNELS-1}] -to 0 input_enable
+  create_bd_pin -dir I -from [expr {$OUTPUT_CHANNELS-1}] -to 0 output_enable
+
+  ad_connect application_core/input_clk input_clk
+  ad_connect application_core/input_rstn input_rstn
+
+  ad_connect application_core/output_clk output_clk
+  ad_connect application_core/output_rstn output_rstn
 
   ad_connect application_core/clk corundum_core/clk
   ad_connect application_core/rst corundum_core/rst
@@ -361,7 +380,12 @@ if {$APP_ENABLE == 1} {
   ad_connect application_core/input_axis_tdata input_axis_tdata
   ad_connect application_core/input_axis_tready input_axis_tready
 
+  ad_connect application_core/output_axis_tvalid output_axis_tvalid
+  ad_connect application_core/output_axis_tdata output_axis_tdata
+  ad_connect application_core/output_axis_tready output_axis_tready
+
   ad_connect application_core/input_enable input_enable
+  ad_connect application_core/output_enable output_enable
 
   ad_connect application_core/jtag_tdi GND
   ad_connect application_core/jtag_tms GND
@@ -447,12 +471,6 @@ if {$APP_ENABLE == 1} {
   if {$APP_STAT_ENABLE} {
     ad_connect application_core/m_axis_stat corundum_core/m_axis_stat_app
   }
-
-  create_bd_pin -dir I -type clk input_clk
-  create_bd_pin -dir I -type rst input_rstn
-
-  ad_connect application_core/input_clk input_clk
-  ad_connect application_core/input_rstn input_rstn
 }
 
 current_bd_instance /

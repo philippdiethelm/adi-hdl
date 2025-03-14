@@ -44,18 +44,14 @@ set_false_path \
   -to [get_cells -hier -filter {NAME =~ *application_tx_inst/sync_bits_run_packetizer/cdc_sync_stage1_reg* && IS_SEQUENTIAL}]
 
 set_false_path \
-  -to [get_cells -hier -filter {NAME =~ *application_tx_inst/packetizer_inst/sync_bits_input_enable_ff/cdc_sync_stage1_reg* && IS_SEQUENTIAL}]
+  -to [get_cells -hier -filter {NAME =~ *application_tx_inst/sync_bits_input_enable_ff/cdc_sync_stage1_reg* && IS_SEQUENTIAL}]
 
 # max delay, limit delay
 
 set_max_delay -datapath_only \
   -from $input_clk \
-  -to [get_cells -hier -filter {NAME =~ *application_tx_inst/packetizer_inst/input_enable_cdc* && IS_SEQUENTIAL}] \
+  -to [get_cells -hier -filter {NAME =~ *application_tx_inst/input_enable_cdc* && IS_SEQUENTIAL}] \
   [get_property -min PERIOD $input_clk]
-set_bus_skew \
-  -from [get_cells -hier -filter {NAME =~ *application_tx_inst/packetizer_inst/input_enable* && IS_SEQUENTIAL}] \
-  -to [get_cells -hier -filter {NAME =~ *application_tx_inst/packetizer_inst/input_enable_cdc* && IS_SEQUENTIAL}] \
-  [get_property -min PERIOD $corundum_input_clk]
 
 # gray coding constraints
 
@@ -83,18 +79,14 @@ set_bus_skew \
 # false paths
 
 set_false_path \
-  -to [get_cells -hier -filter {NAME =~ *application_rx_inst/rx_arbiter/sync_bits_output_enable_ff/cdc_sync_stage1_reg* && IS_SEQUENTIAL}]
+  -to [get_cells -hier -filter {NAME =~ *application_rx_inst/rx_arbiter_inst/sync_bits_output_enable_ff/cdc_sync_stage1_reg* && IS_SEQUENTIAL}]
 
 # max delay, limit delay
 
 set_max_delay -datapath_only \
   -from $output_clk \
-  -to [get_cells -hier -filter {NAME =~ *application_rx_inst/rx_arbiter/output_enable_cdc* && IS_SEQUENTIAL}] \
+  -to [get_cells -hier -filter {NAME =~ *application_rx_inst/rx_arbiter_inst/output_enable_cdc* && IS_SEQUENTIAL}] \
   [get_property -min PERIOD $output_clk]
-set_bus_skew \
-  -from [get_cells -hier -filter {NAME =~ *application_rx_inst/rx_arbiter/output_enable* && IS_SEQUENTIAL}] \
-  -to [get_cells -hier -filter {NAME =~ *application_rx_inst/rx_arbiter/output_enable_cdc* && IS_SEQUENTIAL}] \
-  [get_property -min PERIOD $corundum_output_clk]
 
 # gray coding constraints
 

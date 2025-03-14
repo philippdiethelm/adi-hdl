@@ -547,7 +547,7 @@ module application_core #
   // check configuration
   initial begin
     if (APP_ID != 32'h12340001) begin
-      $error("Error: Invalid APP_ID (expected 32'h12340001, got 32'h%x) (instance %m)", APP_ID);
+      $error("Invalid APP_ID (expected 32'h12340001, got 32'h%x) (instance %m)", APP_ID);
       $finish;
     end
   end

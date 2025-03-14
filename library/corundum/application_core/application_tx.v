@@ -327,7 +327,7 @@ module application_tx #(
     .udp_destination(udp_destination),
     .udp_length(udp_length),
     .udp_checksum(udp_checksum),
-    .input_enable(input_enable),
+    .input_enable(input_enable_cdc),
     .packet_size(packet_size),
     .run_packetizer(run_packetizer),
     .packet_sent(packet_sent),

@@ -78,7 +78,7 @@ module rx_arbiter #(
   input  wire                         input_axis_tvalid,
   input  wire                         input_axis_tready,
   input  wire [AXIS_DATA_WIDTH-1:0]   input_axis_tdata,
-  input  wire [AXIS_DATA_WIDTH-1:0]   input_axis_tlast,
+  input  wire                         input_axis_tlast,
 
   input  wire [CHANNELS-1:0]          output_enable,
 

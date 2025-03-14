@@ -147,15 +147,25 @@ if {$ad_project_params(JESD_MODE) == "64B66B"} {
 ad_ip_parameter axi_ddr_cntrl CONFIG.C0_CLOCK_BOARD_INTERFACE default_250mhz_clk1
 ad_ip_parameter axi_ddr_cntrl CONFIG.C0_DDR4_BOARD_INTERFACE ddr4_sdram_c1_062
 
-set CHANNELS $ad_project_params(RX_JESD_M)
-set SAMPLES $ad_project_params(RX_JESD_S)
+set INPUT_CHANNELS $ad_project_params(RX_JESD_M)
+set INPUT_SAMPLES $ad_project_params(RX_JESD_S)
 
-set SAMPLE_WIDTH $ad_project_params(RX_JESD_NP)
-if {$SAMPLE_WIDTH == 12} {
-  set SAMPLE_WIDTH 16
+set INPUT_SAMPLE_WIDTH $ad_project_params(RX_JESD_NP)
+if {$INPUT_SAMPLE_WIDTH == 12} {
+  set INPUT_SAMPLE_WIDTH 16
 }
 
-set INPUT_WIDTH [expr $CHANNELS*$SAMPLES*$SAMPLE_WIDTH]
+set INPUT_WIDTH [expr $INPUT_CHANNELS*$INPUT_SAMPLES*$INPUT_SAMPLE_WIDTH]
+
+set OUTPUT_CHANNELS $ad_project_params(TX_JESD_M)
+set OUTPUT_SAMPLES $ad_project_params(TX_JESD_S)
+
+set OUTPUT_SAMPLE_WIDTH $ad_project_params(TX_JESD_NP)
+if {$OUTPUT_SAMPLE_WIDTH == 12} {
+  set OUTPUT_SAMPLE_WIDTH 16
+}
+
+set OUTPUT_WIDTH [expr $OUTPUT_CHANNELS*$OUTPUT_SAMPLES*$OUTPUT_SAMPLE_WIDTH]
 
 set CPU MB
 
@@ -165,14 +175,8 @@ source $ad_hdl_dir/library/corundum/scripts/corundum.tcl
 ad_ip_parameter axi_dp_interconnect CONFIG.NUM_CLKS 3
 ad_connect axi_dp_interconnect/aclk2 sys_250m_clk
 
-ad_ip_instance clk_wiz clk_wiz_125mhz
-
-ad_connect clk_wiz_125mhz/clk_in1 sys_250m_clk
-ad_connect clk_wiz_125mhz/reset sys_250m_reset
-
-ad_ip_instance proc_sys_reset sys_125m_rstgen
-ad_connect sys_125m_rstgen/slowest_sync_clk clk_wiz_125mhz/clk_out1
-ad_connect sys_125m_rstgen/ext_reset_in axi_ddr_cntrl/c0_ddr4_ui_clk_sync_rst
+ad_ip_parameter axi_ddr_cntrl CONFIG.ADDN_UI_CLKOUT3_FREQ_HZ 125
+set_property name sys_125m_rstgen [get_bd_cells sys_500m_rstgen]
 
 ad_connect corundum_rstgen/slowest_sync_clk sys_250m_clk
 ad_connect corundum_rstgen/ext_reset_in axi_ddr_cntrl/c0_ddr4_ui_clk_sync_rst
@@ -192,10 +196,10 @@ create_bd_port -dir I -type clk qsfp_mgt_refclk_bufg
 create_bd_port -dir O -type clk clk_125mhz
 create_bd_port -dir O -type clk clk_250mhz
 
-ad_connect clk_wiz_125mhz/clk_out1 clk_125mhz
+ad_connect sys_500m_clk clk_125mhz
 ad_connect sys_250m_clk clk_250mhz
 
-ad_connect corundum_hierarchy/clk_125mhz clk_wiz_125mhz/clk_out1
+ad_connect corundum_hierarchy/clk_125mhz clk_125mhz
 ad_connect corundum_hierarchy/clk_corundum sys_250m_clk
 
 ad_connect corundum_hierarchy/rst_125mhz sys_125m_rstgen/peripheral_reset
@@ -222,20 +226,23 @@ if {$APP_ENABLE == 1} {
 }
 
 ad_ip_instance util_cpack2 util_corundum_cpack [list \
-  NUM_OF_CHANNELS $CHANNELS \
-  SAMPLES_PER_CHANNEL $SAMPLES \
-  SAMPLE_DATA_WIDTH $SAMPLE_WIDTH \
+  NUM_OF_CHANNELS $INPUT_CHANNELS \
+  SAMPLES_PER_CHANNEL $INPUT_SAMPLES \
+  SAMPLE_DATA_WIDTH $INPUT_SAMPLE_WIDTH \
 ]
 
 ad_connect util_corundum_cpack/clk rx_device_clk
 ad_connect util_corundum_cpack/fifo_wr_en rx_mxfe_tpl_core/adc_valid_0
-for {set i 0} {$i<$CHANNELS} {incr i} {
+for {set i 0} {$i<$INPUT_CHANNELS} {incr i} {
   ad_connect util_corundum_cpack/enable_${i} rx_mxfe_tpl_core/adc_enable_${i}
   ad_connect util_corundum_cpack/fifo_wr_data_${i} rx_mxfe_tpl_core/adc_data_${i}
 }
 
 ad_connect corundum_hierarchy/input_clk axi_mxfe_rx_jesd/device_clk
 ad_connect corundum_hierarchy/input_rstn rx_device_clk_rstgen/peripheral_aresetn
+
+ad_connect corundum_hierarchy/output_clk axi_mxfe_tx_jesd/device_clk
+ad_connect corundum_hierarchy/output_rstn tx_device_clk_rstgen/peripheral_aresetn
 
 ad_connect corundum_hierarchy/input_axis_tvalid util_corundum_cpack/packed_fifo_wr_data
 ad_connect corundum_hierarchy/input_axis_tdata util_corundum_cpack/packed_fifo_wr_en
@@ -261,11 +268,20 @@ ad_connect rx_do_rstout_logic_corundum/res cpack_reset_sources_corundum/in2
 ad_connect cpack_reset_sources_corundum/dout cpack_rst_logic_corundum/op1
 ad_connect cpack_rst_logic_corundum/res util_corundum_cpack/reset
 
-ad_ip_instance xlconcat enable_concat_corundum
-ad_ip_parameter enable_concat_corundum config.num_ports $CHANNELS
+ad_ip_instance xlconcat input_enable_concat_corundum
+ad_ip_parameter input_enable_concat_corundum config.num_ports $INPUT_CHANNELS
 
-for {set i 0} {$i<$CHANNELS} {incr i} {
-  ad_connect enable_concat_corundum/In${i} rx_mxfe_tpl_core/adc_enable_${i}
+for {set i 0} {$i<$INPUT_CHANNELS} {incr i} {
+  ad_connect input_enable_concat_corundum/In${i} rx_mxfe_tpl_core/adc_enable_${i}
 }
 
-ad_connect enable_concat_corundum/dout corundum_hierarchy/input_enable
+ad_connect input_enable_concat_corundum/dout corundum_hierarchy/input_enable
+
+ad_ip_instance xlconcat output_enable_concat_corundum
+ad_ip_parameter output_enable_concat_corundum config.num_ports $OUTPUT_CHANNELS
+
+for {set i 0} {$i<$OUTPUT_CHANNELS} {incr i} {
+  ad_connect output_enable_concat_corundum/In${i} tx_mxfe_tpl_core/dac_enable_${i}
+}
+
+ad_connect output_enable_concat_corundum/dout corundum_hierarchy/output_enable

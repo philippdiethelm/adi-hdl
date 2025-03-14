@@ -143,6 +143,8 @@ module application_rx #(
   ////----------------------------------------Arbiter-------------------------//
   //////////////////////////////////////////////////
 
+  wire valid;
+
   rx_arbiter #(
     .AXIS_DATA_WIDTH(AXIS_DATA_WIDTH),
     .CHANNELS(CHANNELS)
@@ -261,8 +263,20 @@ module application_rx #(
         m_axis_sync_rx_tlast <= {IF_COUNT*PORTS_PER_IF{1'b0}};
         m_axis_sync_rx_tuser <= {IF_COUNT*PORTS_PER_IF*AXIS_RX_USER_WIDTH{1'b0}};
 
-        // header extraction
-        if (axis_sync_rx_tvalid_reg) begin
+        if (valid) begin
+          axis_sync_rx_tready_reg <= {IF_COUNT*PORTS_PER_IF{1'b1}};
+
+          input_axis_tdata_reg[0] <= {IF_COUNT*PORTS_PER_IF*AXIS_DATA_WIDTH{1'b0}};
+          input_axis_tkeep_reg[0] <= {IF_COUNT*PORTS_PER_IF*AXIS_KEEP_WIDTH{1'b0}};
+          input_axis_tvalid_reg[0] <= {IF_COUNT*PORTS_PER_IF{1'b0}};
+
+          input_axis_tdata_reg[1] <= {IF_COUNT*PORTS_PER_IF*AXIS_DATA_WIDTH{1'b0}};
+          input_axis_tkeep_reg[1] <= {IF_COUNT*PORTS_PER_IF*AXIS_KEEP_WIDTH{1'b0}};
+          input_axis_tvalid_reg[1] <= {IF_COUNT*PORTS_PER_IF{1'b0}};
+
+          input_axis_tlast_reg <= {IF_COUNT*PORTS_PER_IF{1'b0}};
+        end else begin
+          // header extraction
           input_axis_tdata_reg[0] <= reg_part1;
           input_axis_tkeep_reg[0] <= axis_sync_rx_tkeep_reg[AXIS_DATA_WIDTH/8-1:(AXIS_DATA_WIDTH-HEADER_LENGTH)/8];
           input_axis_tvalid_reg[0] <= axis_sync_rx_tvalid_reg;
@@ -272,9 +286,9 @@ module application_rx #(
           input_axis_tvalid_reg[1] <= input_axis_tvalid_reg[0];
 
           input_axis_tlast_reg <= axis_sync_rx_tlast_reg;
-        end
 
-        axis_sync_rx_tready_reg <= input_axis_tready_reg;
+          axis_sync_rx_tready_reg <= input_axis_tready_reg;
+        end
       end
     end
   end

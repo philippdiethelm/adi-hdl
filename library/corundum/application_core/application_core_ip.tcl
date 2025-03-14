@@ -536,6 +536,15 @@ adi_add_bus "input_axis" "slave" \
     {"input_axis_tready" "TREADY"} \
   }
 
+adi_add_bus "output_axis" "master" \
+  "xilinx.com:interface:axis_rtl:1.0" \
+  "xilinx.com:interface:axis:1.0" \
+  {
+    {"output_axis_tdata" "TDATA"} \
+    {"output_axis_tvalid" "TVALID"} \
+    {"output_axis_tready" "TREADY"} \
+  }
+
 # Bus-clock association
 
 adi_add_bus_clock "clk" "s_axil_ctrl:s_axis_sync_tx:m_axis_sync_tx:s_axis_sync_rx:m_axis_sync_rx:s_axis_if_tx:m_axis_if_tx:s_axis_if_rx:m_axis_if_rx:m_axil_ctrl" "rst"
@@ -544,6 +553,7 @@ adi_add_bus_clock "hbm_clk" "m_axi_hbm" "hbm_rst"
 adi_add_bus_clock "direct_tx_clk" "s_axis_direct_tx:m_axis_direct_tx" "direct_tx_rst"
 adi_add_bus_clock "direct_rx_clk" "s_axis_direct_rx:m_axis_direct_rx" "direct_rx_rst"
 adi_add_bus_clock "input_clk" "input_axis" "input_rstn"
+adi_add_bus_clock "output_clk" "output_axis" "output_rstn"
 
 ## Create and save the XGUI file
 ipx::create_xgui_files $cc
