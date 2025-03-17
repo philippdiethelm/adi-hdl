@@ -1,14 +1,13 @@
 # AD719x-ASDZ HDL Project
 
-  * Evaluation board product pages:
-    * [EVAL-AD7190](https://www.analog.com/eval-ad7190)
-    * [EVAL-AD7192](https://www.analog.com/eval-ad7192)
-    * [EVAL-AD7193](https://www.analog.com/eval-ad7193)
-    * [EVAL-AD7194](https://www.analog.com/eval-ad7194)
-    * [EVAL-AD7195](https://www.analog.com/eval-ad7195)
-  * System documentation: https://wiki.analog.com/resources/eval/adc/ad719x_asdz 
-  * HDL project documentation: [source code](../../docs/projects/ad719x_asdz/index.rst)
-    or [online](http://analogdevicesinc.github.io/hdl/projects/ad719x_asdz/index.html)
+- Evaluation boards product page:
+  - [EVAL-AD7190](https://www.analog.com/eval-ad7190)
+  - [EVAL-AD7192](https://www.analog.com/eval-ad7192)
+  - [EVAL-AD7193](https://www.analog.com/eval-ad7193)
+  - [EVAL-AD7194](https://www.analog.com/eval-ad7194)
+  - [EVAL-AD7195](https://www.analog.com/eval-ad7195)
+- System documentation: https://wiki.analog.com/resources/eval/adc/ad719x_asdz 
+- HDL project documentation: http://analogdevicesinc.github.io/hdl/projects/ad719x_asdz/index.html
 
 ## Supported parts
 
@@ -22,8 +21,4 @@
 
 ## Building the project
 
-This project is supported only on FPGA Xilinx Cora Z7S.
-
-```
-hdl/projects/ad719x_asdz/cora> make
-```
+Please enter the folder for the FPGA carrier you want to use and read the README.md.

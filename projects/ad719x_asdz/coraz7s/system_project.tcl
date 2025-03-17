@@ -6,12 +6,12 @@
 # In the case of:
 # EVAL-AD7190 and EVAL-AD9175:
 #   it works both connecting its PMOD to PMOD JA of Cora, and
-#   placing it on top of Cora, connecting it to the Arduino header
+#   placing it on top of Cora, connecting it to the Arduino shield
 # EVAL-AD7193: only ARDZ_PMOD_N=1;
-#   works only by placing it on top of Cora, connecting it to the Arduino header
+#   works only by placing it on top of Cora, connecting it to the Arduino shield
 
 # make  or  make ARDZ_PMOD_N=0 - connect the eval board PMOD to PMOD JA of Cora
-# make ARDZ_PMOD_N=1 - connect the eval board to the Arduino header (placing it on top of Cora)
+# make ARDZ_PMOD_N=1 - connect the eval board to the Arduino shield (placing it on top of Cora)
 
 source ../../../scripts/adi_env.tcl
 source $ad_hdl_dir/projects/scripts/adi_project_xilinx.tcl
@@ -35,7 +35,7 @@ switch [get_env_param ARDZ_PMOD_N 0] {
     ]
   }
   1 {
-    # through Arduino header
+    # through Arduino shield
     adi_project_files {} [list \
       "system_constr_ardz.xdc" \
       "system_top_ardz.v" \
