@@ -304,6 +304,9 @@ module system_top (
     .dac1_div_clk (proto_hdr[2]),
     .dac2_div_clk (proto_hdr[3]));
 
-  assign proto_hdr[9:4] = {'b0};
+  assign proto_hdr[9:6] = {'b0};
+
+  assign proto_hdr[4] = spi_csn[1];
+  assign proto_hdr[5] = spi_csn[2];
 
 endmodule
