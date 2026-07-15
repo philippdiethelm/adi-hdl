@@ -19,7 +19,7 @@ scalability.
 The reference design is a processor based (e.g. ARM) embedded system. The device
 interfaces to the FPGA transceivers followed by the individual JESD204B and ADC
 cores. The cores are programmable through an AXI-Lite interface. The samples are
-initially captured by :git-hdl:`UTIL_ADCFIFO <library/util_adcfifo>` and then
+initially captured by :git-hdl:`DATA_OFFLOAD <library/data_offload>` and then
 passed to the system memory (DDR). The user can capture up to 1048576 samples
 per channel, if both channels are selected or 2097152 per channel if only
 one channel is selected or in the case the data is considered single
@@ -309,9 +309,9 @@ HDL related
    * - SYSID_ROM
      - :git-hdl:`library/sysid_rom`
      - :ref:`axi_sysid`
-   * - UTIL_ADCFIFO
-     - :git-hdl:`library/util_adcfifo`
-     - ---
+   * - DATA_OFFLOAD
+     - :git-hdl:`library/data_offload`
+     - :ref:`data_offload`
    * - ADI_JESD204 for Intel
      - :git-hdl:`library/intel/adi_jesd204`
      - ---
