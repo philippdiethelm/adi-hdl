@@ -371,9 +371,9 @@ HDL related
    * - UTIL_CPACK2
      - :git-hdl:`library/util_pack/util_cpack2`
      - :ref:`util_cpack2`
-   * - UTIL_ADCFIFO
-     - :git-hdl:`library/util_adcfifo` *
-     - ---
+   * - DATA_OFFLOAD
+     - :git-hdl:`library/data_offload` *
+     - :ref:`data_offload`
    * - UTIL_ADXCVR
      - :git-hdl:`library/xilinx/util_adxcvr` **
      - :ref:`util_adxcvr`
