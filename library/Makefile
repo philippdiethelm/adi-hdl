@@ -11,7 +11,7 @@ include ../quiet.mk
 .PHONY: all lib clean clean-all
 all: lib
 
-_LIBS := $(dir $(shell find . -mindepth 2 -name Makefile | sort))
+_LIBS := $(dir $(shell find . -mindepth 2 -name Makefile | grep -v vcu118 | grep -v xcvu11p | grep -v k26  | sort))
 
 # Create virtual targets "$library/all", "$library/clean"
 _LIBS_ALL := $(addsuffix all, $(_LIBS))

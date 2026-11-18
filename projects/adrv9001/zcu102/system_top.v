@@ -48,6 +48,11 @@ module system_top (
   input                   spi_do,
   output                  spi_en,
 
+  output                  spi1_clk,
+  output                  spi1_dio,
+  input                   spi1_do,
+  output                  spi1_en,
+
   // Device clock
   input                   fpga_ref_clk_n,
   input                   fpga_ref_clk_p,
@@ -140,6 +145,7 @@ module system_top (
   wire                    gpio_tx1_enable_in;
   wire                    gpio_tx2_enable_in;
   wire        [ 2:0]      spi_csn;
+  wire        [ 2:0]      spi1_csn;
 
   wire fpga_ref_clk;
   wire fpga_mcs_in;
@@ -216,6 +222,8 @@ module system_top (
 
   assign spi_en = spi_csn[0];
 
+  assign spi1_en = spi1_csn[0];
+
   assign tdd_sync_loc = gpio_o[56];
 
   // tdd_sync_loc - local sync signal from a GPIO or other source
@@ -290,9 +298,9 @@ module system_top (
     .spi0_csn (spi_csn),
     .spi0_miso (spi_do),
     .spi0_mosi (spi_dio),
-    .spi1_sclk (),
-    .spi1_csn (),
-    .spi1_miso (1'b0),
-    .spi1_mosi ());
+    .spi1_sclk (spi1_clk),
+    .spi1_csn (spi1_csn),
+    .spi1_miso (spi1_di),
+    .spi1_mosi (spi1_dio));
 
 endmodule

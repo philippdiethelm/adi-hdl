@@ -49,3 +49,19 @@ set_property UNAVAILABLE_DURING_CALIBRATION TRUE [get_ports tx2_idata_out_p]
 
 set_property  -dict {PACKAGE_PIN A20   IOSTANDARD LVCMOS33} [get_ports tdd_sync]   ;#PMOD0_0 J55.1
 
+set_property PACKAGE_PIN D20      [get_ports "spi1_en"] ;# PMOD1_0  Bank  47 VCCO - VCC3V3   - IO_L8N_HDGC_AD4N_47
+set_property IOSTANDARD  LVCMOS33 [get_ports "spi1_en"] ;# PMOD1_0  Bank  47 VCCO - VCC3V3   - IO_L8N_HDGC_AD4N_47
+set_property PACKAGE_PIN E20      [get_ports "spi1_clk"] ;# PMOD1_1  Bank  47 VCCO - VCC3V3   - IO_L8P_HDGC_AD4P_47
+set_property IOSTANDARD  LVCMOS33 [get_ports "spi1_clk"] ;# PMOD1_1  Bank  47 VCCO - VCC3V3   - IO_L8P_HDGC_AD4P_47
+# set_property PACKAGE_PIN D22      [get_ports "PMOD1_2"] ;# PMOD1_2  Bank  47 VCCO - VCC3V3   - IO_L7N_HDGC_AD5N_47
+# set_property IOSTANDARD  LVCMOS33 [get_ports "PMOD1_2"] ;# PMOD1_2  Bank  47 VCCO - VCC3V3   - IO_L7N_HDGC_AD5N_47
+# set_property PACKAGE_PIN E22      [get_ports "PMOD1_3"] ;# PMOD1_3  Bank  47 VCCO - VCC3V3   - IO_L7P_HDGC_AD5P_47
+# set_property IOSTANDARD  LVCMOS33 [get_ports "PMOD1_3"] ;# PMOD1_3  Bank  47 VCCO - VCC3V3   - IO_L7P_HDGC_AD5P_47
+set_property PACKAGE_PIN F20      [get_ports "spi1_do"] ;# PMOD1_4  Bank  47 VCCO - VCC3V3   - IO_L6N_HDGC_AD6N_47
+set_property IOSTANDARD  LVCMOS33 [get_ports "spi1_do"] ;# PMOD1_4  Bank  47 VCCO - VCC3V3   - IO_L6N_HDGC_AD6N_47
+set_property PACKAGE_PIN G20      [get_ports "spi1_dio"] ;# PMOD1_5  Bank  47 VCCO - VCC3V3   - IO_L6P_HDGC_AD6P_47
+set_property IOSTANDARD  LVCMOS33 [get_ports "spi1_dio"] ;# PMOD1_5  Bank  47 VCCO - VCC3V3   - IO_L6P_HDGC_AD6P_47
+# set_property PACKAGE_PIN J20      [get_ports "PMOD1_6"] ;# PMOD1_6  Bank  47 VCCO - VCC3V3   - IO_L4N_AD8N_47
+# set_property IOSTANDARD  LVCMOS33 [get_ports "PMOD1_6"] ;# PMOD1_6  Bank  47 VCCO - VCC3V3   - IO_L4N_AD8N_47
+# set_property PACKAGE_PIN J19      [get_ports "PMOD1_7"] ;# PMOD1_7  Bank  47 VCCO - VCC3V3   - IO_L4P_AD8P_47
+# set_property IOSTANDARD  LVCMOS33 [get_ports "PMOD1_7"] ;# PMOD1_7  Bank  47 VCCO - VCC3V3   - IO_L4P_AD8P_47
